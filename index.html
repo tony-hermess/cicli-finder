@@ -6,6 +6,7 @@
 <title>Cicli Finder — Maggioranza</title>
 <!-- gap-gol-over-v1 -->
 <!-- nuovo-ciclo-stesso-tipo-v1 -->
+<!-- tipi-a3-a4-v1 -->
 <style>
 :root {
   --bg: #0f0a1a;
@@ -25,6 +26,8 @@
   --smen: #ff5c6c;
   --mist: #4fc3f7;
   --prim: #c084fc;
+  --a3: #ff8a3d;
+  --a4: #ff6eb4;
   --ecc: #f5c542;
   --conf-bg: #3ddc8433;
   --conf-tx: #3ddc84;
@@ -34,6 +37,10 @@
   --mist-tx: #4fc3f7;
   --prim-bg: #c084fc33;
   --prim-tx: #e9d5ff;
+  --a3-bg: #ff8a3d33;
+  --a3-tx: #ffb07a;
+  --a4-bg: #ff6eb433;
+  --a4-tx: #ff9ecb;
   --danger: #f87171;
   --radius: 14px;
   --tap: 44px;
@@ -186,11 +193,13 @@ input:focus, select:focus { border-color: var(--purple); }
 .sig-grid .cell.tap:active { transform: scale(.9); }
 
 /* ciclo-colori-v2 */
-/* Cycle column colors: confermato verde, smentito rosso, misto azzurro, prima viola */
+/* Cycle column colors: confermato verde, smentito rosso, misto azzurro, prima viola, a3 arancio, a4 rosa */
 .col-conf { background: var(--conf-bg) !important; color: var(--conf-tx) !important; box-shadow: inset 0 -3px 0 var(--conf); }
 .col-smen { background: var(--smen-bg) !important; color: var(--smen-tx) !important; box-shadow: inset 0 -3px 0 var(--smen); }
 .col-mist { background: var(--mist-bg) !important; color: var(--mist-tx) !important; box-shadow: inset 0 -3px 0 var(--mist); }
 .col-prim { background: var(--prim-bg) !important; color: var(--prim-tx) !important; box-shadow: inset 0 -3px 0 var(--prim); }
+.col-a3 { background: var(--a3-bg) !important; color: var(--a3-tx) !important; box-shadow: inset 0 -3px 0 var(--a3); }
+.col-a4 { background: var(--a4-bg) !important; color: var(--a4-tx) !important; box-shadow: inset 0 -3px 0 var(--a4); }
 .col-ecc { box-shadow: inset 0 0 0 3px var(--ecc) !important; }
 
 /* Tint on giornata cells of the ciclo */
@@ -198,6 +207,8 @@ input:focus, select:focus { border-color: var(--purple); }
 .tint-smen { background: #ff5c6c2e !important; box-shadow: inset 0 0 0 1px #ff5c6c55; }
 .tint-mist { background: #4fc3f72e !important; box-shadow: inset 0 0 0 1px #4fc3f755; }
 .tint-prim { background: #c084fc2e !important; box-shadow: inset 0 0 0 1px #c084fc55; }
+.tint-a3 { background: #ff8a3d2e !important; box-shadow: inset 0 0 0 1px #ff8a3d55; }
+.tint-a4 { background: #ff6eb42e !important; box-shadow: inset 0 0 0 1px #ff6eb455; }
 
 /* Eccezione: tutta la colonna (riga di celle) della giornata dell'incrocio */
 .sig-grid .cell.ecc-row,
@@ -224,6 +235,8 @@ input:focus, select:focus { border-color: var(--purple); }
 .chip.on.smen { background: #ff5c6c33; color: var(--smen); border-color: var(--smen); }
 .chip.on.mist { background: #4fc3f733; color: var(--mist); border-color: var(--mist); }
 .chip.on.prim { background: #c084fc33; color: var(--prim); border-color: var(--prim); }
+.chip.on.a3 { background: #ff8a3d33; color: var(--a3); border-color: var(--a3); }
+.chip.on.a4 { background: #ff6eb433; color: var(--a4); border-color: var(--a4); }
 .toggle-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 0; gap: 10px;
@@ -273,6 +286,8 @@ input:focus, select:focus { border-color: var(--purple); }
 .filter-chip.on[data-f="smentito"] { background: #ff5c6c33; color: var(--smen); border-color: var(--smen); }
 .filter-chip.on[data-f="misto"] { background: #4fc3f733; color: var(--mist); border-color: var(--mist); }
 .filter-chip.on[data-f="prima"] { background: #c084fc33; color: var(--prim); border-color: var(--prim); }
+.filter-chip.on[data-f="a3"] { background: #ff8a3d33; color: var(--a3); border-color: var(--a3); }
+.filter-chip.on[data-f="a4"] { background: #ff6eb433; color: var(--a4); border-color: var(--a4); }
 .filter-chip.on[data-f="eccezione"] { background: #f5c54233; color: var(--ecc); border-color: var(--ecc); }
 
 /* Storico cards */
@@ -290,6 +305,8 @@ input:focus, select:focus { border-color: var(--purple); }
 .badge-tipo.smen { background: var(--smen-bg); color: var(--smen-tx); }
 .badge-tipo.mist { background: var(--mist-bg); color: var(--mist-tx); }
 .badge-tipo.prim { background: var(--prim-bg); color: var(--prim-tx); }
+.badge-tipo.a3 { background: var(--a3-bg); color: var(--a3-tx); }
+.badge-tipo.a4 { background: var(--a4-bg); color: var(--a4-tx); }
 .badge-ecc {
   font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
   background: #f5c54233; color: var(--ecc); border: 2px solid var(--ecc);
@@ -425,6 +442,8 @@ input:focus, select:focus { border-color: var(--purple); }
         <span><i class="swatch" style="background:var(--smen)"></i> Smentito</span>
         <span><i class="swatch" style="background:var(--mist)"></i> Misto</span>
         <span><i class="swatch" style="background:var(--prim)"></i> Prima</span>
+        <span><i class="swatch" style="background:var(--a3)"></i> Incrocio a 3</span>
+        <span><i class="swatch" style="background:var(--a4)"></i> Incrocio a 4</span>
         <span><i class="swatch ecc"></i> Eccezione</span>
         <span><i class="swatch newsame"></i> Nuovo ciclo (stesso tipo)</span>
         <span>✅ ok · ❌ ko</span>
@@ -449,6 +468,8 @@ input:focus, select:focus { border-color: var(--purple); }
           <button class="chip" data-tipo="smentito">Smentito</button>
           <button class="chip" data-tipo="misto">Misto</button>
           <button class="chip" data-tipo="prima">Prima</button>
+          <button class="chip" data-tipo="a3">A 3</button>
+          <button class="chip" data-tipo="a4">A 4</button>
         </div>
       </div>
       <div class="toggle-row">
@@ -500,6 +521,8 @@ input:focus, select:focus { border-color: var(--purple); }
       <button class="filter-chip" data-f="smentito">Smentito</button>
       <button class="filter-chip" data-f="misto">Misto</button>
       <button class="filter-chip" data-f="prima">Prima</button>
+      <button class="filter-chip" data-f="a3">A 3</button>
+      <button class="filter-chip" data-f="a4">A 4</button>
     </div>
     <div class="filters" style="margin-top:8px;" id="filtriExtra">
       <button class="filter-chip" data-f="eccezione">Solo eccezione</button>
@@ -518,9 +541,11 @@ input:focus, select:focus { border-color: var(--purple); }
 'use strict';
 
 const STORAGE_KEY = 'cicli-finder-maggioranza-v1';
-const TIPI = ['confermato', 'smentito', 'misto', 'prima'];
-const TIPO_CLASS = { confermato: 'conf', smentito: 'smen', misto: 'mist', prima: 'prim' };
-const TIPO_LABEL = { confermato: 'Confermato', smentito: 'Smentito', misto: 'Misto', prima: 'Prima' };
+const TIPI = ['confermato', 'smentito', 'misto', 'prima', 'a3', 'a4'];
+const TIPO_CLASS = { confermato: 'conf', smentito: 'smen', misto: 'mist', prima: 'prim', a3: 'a3', a4: 'a4' };
+const TIPO_LABEL = { confermato: 'Confermato', smentito: 'Smentito', misto: 'Misto', prima: 'Prima', a3: 'A 3', a4: 'A 4' };
+function tipoClass(t) { return TIPO_CLASS[t] || 'prim'; }
+function tipoLabel(t) { return TIPO_LABEL[t] || t || '—'; }
 
 // ---------- State ----------
 let state = load();
@@ -599,7 +624,7 @@ function buildCycleMap(camp) {
       }
     }
   }
-  // nuovo-ciclo-stesso-tipo-v1: segna l'inizio di un ciclo che ha lo stesso tipo del precedente
+  // nuovo-ciclo-stesso-tipo-v1: stesso tipo del precedente, anche a3→a3 e a4→a4
   for (let i = 1; i < incs.length; i++) {
     const prev = incs[i - 1], inc = incs[i];
     if (prev.tipo === inc.tipo && prev.gStart !== inc.gStart && map[inc.gStart]) {
@@ -650,7 +675,7 @@ function extractCicli(camp) {
       snapshotIncrocio: { ...inc }
     });
   }
-  // Merge consecutive same type + same conEccezione
+  // Merge consecutive same type + same conEccezione (di fila), anche a3 e a4
   const merged = [];
   for (const c of cicli) {
     const prev = merged[merged.length - 1];
@@ -778,7 +803,7 @@ function renderGrid(camp) {
     const cy = cycleMap[g];
     let cls = 'cell header';
     if (cy) {
-      cls += ' col-' + TIPO_CLASS[cy.tipo];
+      cls += ' col-' + tipoClass(cy.tipo);
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
       if (cy.newSame) cls += ' new-same';
     }
@@ -799,7 +824,7 @@ function renderGrid(camp) {
         let cls = 'cell tap' + os;
         if (sig === 'ok') cls += ' ok';
         else if (sig === 'ko') cls += ' ko';
-        if (cy && !sig) cls += ' tint-' + TIPO_CLASS[cy.tipo];
+        if (cy && !sig) cls += ' tint-' + tipoClass(cy.tipo);
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
@@ -838,7 +863,7 @@ function renderIncPanel(camp) {
   document.querySelectorAll('#tipoChips .chip').forEach(ch => {
     ch.classList.toggle('on', ch.dataset.tipo === incDraft.tipo);
     TIPI.forEach(t => ch.classList.remove(TIPO_CLASS[t]));
-    if (ch.dataset.tipo === incDraft.tipo) ch.classList.add('on', TIPO_CLASS[incDraft.tipo]);
+    if (ch.dataset.tipo === incDraft.tipo) ch.classList.add('on', tipoClass(incDraft.tipo));
   });
   document.getElementById('togEccezione').classList.toggle('on', !!incDraft.conEccezione);
   document.getElementById('togEccezione').setAttribute('aria-checked', !!incDraft.conEccezione);
@@ -863,7 +888,7 @@ function renderIncPanel(camp) {
       const range = inc.gEnd && inc.gEnd !== inc.gStart ? `G${inc.gStart}–${inc.gEnd}` : `G${inc.gStart}`;
       const mats = (inc.matches || []).map(m => (m.ramo === 'gol' ? 'G' : 'O') + m.n).join(' ');
       return `<div class="inc-list-item" data-id="${inc.id}">
-        <span class="badge-tipo ${TIPO_CLASS[inc.tipo]}">${TIPO_LABEL[inc.tipo]}</span>
+        <span class="badge-tipo ${tipoClass(inc.tipo)}">${tipoLabel(inc.tipo)}</span>
         ${inc.conEccezione ? '<span class="badge-ecc">ECC</span>' : ''}
         <span><strong>${range}</strong> ${esc(mats)}</span>
         <div class="acts">
@@ -975,7 +1000,7 @@ function renderCicloCard(it) {
   const range = it.gStart === it.gEnd ? `G${it.gStart}` : `G${it.gStart}–${it.gEnd}`;
   return `<div class="storico-card" data-id="${it.id}">
     <div class="label-row">
-      <span class="badge-tipo ${TIPO_CLASS[it.tipo]}">${TIPO_LABEL[it.tipo]}</span>
+      <span class="badge-tipo ${tipoClass(it.tipo)}">${tipoLabel(it.tipo)}</span>
       ${it.conEccezione ? '<span class="badge-ecc">ECCEZIONE</span>' : ''}
       ${it.diFila ? '<span class="badge-fila">DI FILA ×' + it.mergedFrom + '</span>' : ''}
       ${it.hasStreak ? '<span class="badge-fila" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK</span>' : ''}
@@ -1015,7 +1040,7 @@ function miniGridHtml(it) {
     return true;
   };
   for (let g = gStart; g <= gEnd; g++) {
-    let cls = 'mc header col-' + TIPO_CLASS[it.tipo];
+    let cls = 'mc header col-' + tipoClass(it.tipo);
     if (eccDay(g)) cls += ' col-ecc ecc-row';
     html += `<div class="${cls}">${g}</div>`;
   }
@@ -1029,7 +1054,7 @@ function miniGridHtml(it) {
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
-        else cls += ' tint-' + TIPO_CLASS[it.tipo];
+        else cls += ' tint-' + tipoClass(it.tipo);
         if (eccDay(g)) cls += ' ecc-row';
         html += `<div class="${cls}">${icon}</div>`;
       }
@@ -1049,7 +1074,7 @@ function miniGridHtmlFromCamp(camp) {
     const cy = cycleMap[g];
     let cls = 'mc header';
     if (cy) {
-      cls += ' col-' + TIPO_CLASS[cy.tipo];
+      cls += ' col-' + tipoClass(cy.tipo);
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
       if (cy.newSame) cls += ' new-same';
     }
@@ -1066,7 +1091,7 @@ function miniGridHtmlFromCamp(camp) {
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
-        else if (cy) cls += ' tint-' + TIPO_CLASS[cy.tipo];
+        else if (cy) cls += ' tint-' + tipoClass(cy.tipo);
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
         html += `<div class="${cls}">${icon}</div>`;
