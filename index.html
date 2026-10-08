@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cicli Finder — Maggioranza</title>
+<!-- gap-gol-over-v1 -->
 <style>
 :root {
   --bg: #0f0a1a;
@@ -333,6 +334,10 @@ input:focus, select:focus { border-color: var(--purple); }
 .mini-grid .mc.label { width: 36px; font-size: 8px; color: var(--text3); background: transparent; justify-content: flex-start; }
 .mini-grid .mc.ok { color: var(--ok); background: #14532d44; }
 .mini-grid .mc.ko { color: var(--ko); background: #7f1d1d44; }
+
+/* gap-gol-over-v1: separazione tra blocco 6G e blocco 6O */
+.sig-grid .cell.over-start { margin-top: 10px; }
+.mini-grid .mc.over-start { margin-top: 5px; }
 
 .section-pad { padding: 0 12px; margin-top: 8px; }
 .help { font-size: 11px; color: var(--text3); margin-top: 4px; }
@@ -747,11 +752,12 @@ function renderGrid(camp) {
   for (const ramo of ['gol', 'over']) {
     for (let n = 1; n <= 6; n++) {
       const lab = n + (ramo === 'gol' ? 'G' : 'O');
-      html += `<div class="cell label">${lab}</div>`;
+      const os = (ramo === 'over' && n === 1) ? ' over-start' : '';
+      html += `<div class="cell label${os}">${lab}</div>`;
       for (let g = 1; g <= N; g++) {
         const sig = (camp.signals && camp.signals[g] && camp.signals[g][ramo] && camp.signals[g][ramo][n]) || '';
         const cy = cycleMap[g];
-        let cls = 'cell tap';
+        let cls = 'cell tap' + os;
         if (sig === 'ok') cls += ' ok';
         else if (sig === 'ko') cls += ' ko';
         if (cy && !sig) cls += ' tint-' + TIPO_CLASS[cy.tipo];
@@ -975,10 +981,11 @@ function miniGridHtml(it) {
   }
   for (const ramo of ['gol', 'over']) {
     for (let n = 1; n <= 6; n++) {
-      html += `<div class="mc label">${ramo[0].toUpperCase()}${n}</div>`;
+      const os = (ramo === 'over' && n === 1) ? ' over-start' : '';
+      html += `<div class="mc label${os}">${ramo[0].toUpperCase()}${n}</div>`;
       for (let g = gStart; g <= gEnd; g++) {
         const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
-        let cls = 'mc';
+        let cls = 'mc' + os;
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
@@ -1009,11 +1016,12 @@ function miniGridHtmlFromCamp(camp) {
   }
   for (const ramo of ['gol', 'over']) {
     for (let n = 1; n <= 6; n++) {
-      html += `<div class="mc label">${ramo[0].toUpperCase()}${n}</div>`;
+      const os = (ramo === 'over' && n === 1) ? ' over-start' : '';
+      html += `<div class="mc label${os}">${ramo[0].toUpperCase()}${n}</div>`;
       for (let g = 1; g <= N; g++) {
         const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
         const cy = cycleMap[g];
-        let cls = 'mc';
+        let cls = 'mc' + os;
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
