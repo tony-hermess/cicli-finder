@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cicli Finder — Maggioranza</title>
+<style>
+:root {
+  --bg: #0f0a1a;
+  --bg2: #1a1228;
+  --bg3: #241a36;
+  --card: #1e1530;
+  --border: #3d2a5c;
+  --purple: #a855f7;
+  --purple2: #c084fc;
+  --purple-dim: #7c3aed33;
+  --text: #f3e8ff;
+  --text2: #c4b5d4;
+  --text3: #8b7a9e;
+  --ok: #22c55e;
+  --ko: #ef4444;
+  --conf-bg: #dff0d4;
+  --conf-tx: #166534;
+  --smen-bg: #ffdbd8;
+  --smen-tx: #991b1b;
+  --mist-bg: #cbf0ff;
+  --mist-tx: #075985;
+  --prim-bg: #efcaff;
+  --prim-tx: #6b21a8;
+  --danger: #f87171;
+  --radius: 14px;
+  --tap: 44px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body { max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+button, input, select { font: inherit; color: inherit; }
+button {
+  cursor: pointer; border: none; background: none;
+  min-height: var(--tap); min-width: var(--tap);
+  border-radius: 10px; padding: 8px 14px;
+  transition: background .15s, transform .1s;
+}
+button:active { transform: scale(.97); }
+input, select {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; width: 100%;
+  color: var(--text); outline: none;
+}
+input:focus, select:focus { border-color: var(--purple); }
+.hidden { display: none !important; }
+
+/* Header */
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #1a0f2e 0%, #160c24 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px 0;
+  backdrop-filter: blur(8px);
+}
+.app-header h1 {
+  font-size: 17px; font-weight: 700; letter-spacing: .02em;
+  display: flex; align-items: center; gap: 8px;
+}
+.app-header h1 span.badge {
+  font-size: 10px; background: var(--purple-dim); color: var(--purple2);
+  padding: 2px 8px; border-radius: 999px; font-weight: 600;
+}
+.tabs {
+  display: flex; gap: 4px; margin-top: 12px;
+}
+.tab {
+  flex: 1; text-align: center; padding: 10px;
+  color: var(--text3); font-weight: 600; font-size: 14px;
+  border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
+}
+.tab.active {
+  color: var(--purple2); border-bottom-color: var(--purple);
+  background: var(--purple-dim);
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 10px 12px;
+}
+.card-title {
+  font-size: 13px; font-weight: 700; color: var(--purple2);
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-weight: 600; font-size: 13px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff; box-shadow: 0 2px 12px #a855f744;
+}
+.btn-primary:active { background: #6d28d9; }
+.btn-ghost {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+}
+.btn-danger {
+  background: #3b1219; border: 1px solid #7f1d1d; color: var(--danger);
+}
+.btn-sm { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+.btn-block { width: 100%; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.btn-row .btn { flex: 1 1 auto; }
+
+/* Campionato list */
+.camp-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; border-radius: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  margin-bottom: 8px; cursor: pointer;
+}
+.camp-item.active { border-color: var(--purple); background: var(--purple-dim); }
+.camp-item .name { font-weight: 700; flex: 1; }
+.camp-item .meta { font-size: 11px; color: var(--text3); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ok);
+}
+.status-dot.chiuso { background: var(--text3); }
+
+/* Grid */
+.grid-wrap {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: 0 -4px; padding: 4px;
+}
+.sig-grid {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  min-width: 100%;
+}
+.sig-grid .cell {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  font-size: 14px; font-weight: 700;
+  background: var(--bg3);
+  user-select: none; cursor: pointer;
+  border: 1px solid transparent;
+}
+.sig-grid .cell.header {
+  font-size: 11px; color: var(--text2); cursor: default;
+  background: var(--bg2); height: 32px;
+}
+.sig-grid .cell.label {
+  width: 52px; font-size: 10px; color: var(--text2);
+  cursor: default; background: var(--bg); justify-content: flex-start;
+  padding-left: 4px; font-weight: 700;
+  position: sticky; left: 0; z-index: 2;
+  box-shadow: 6px 0 10px rgba(0,0,0,.4);
+}
+.sig-grid .cell.label.section {
+  color: var(--purple2); font-size: 11px; width: 52px;
+}
+.sig-grid .cell.label.corner {
+  z-index: 3; top: 0; background: var(--bg);
+}
+.sig-grid .cell.ok { background: #14532d44; color: var(--ok); border-color: #22c55e55; }
+.sig-grid .cell.ko { background: #7f1d1d44; color: var(--ko); border-color: #ef444455; }
+.sig-grid .cell.tap:active { transform: scale(.9); }
+
+/* Cycle column colors on header */
+.col-conf { background: var(--conf-bg) !important; color: var(--conf-tx) !important; }
+.col-smen { background: var(--smen-bg) !important; color: var(--smen-tx) !important; }
+.col-mist { background: var(--mist-bg) !important; color: var(--mist-tx) !important; }
+.col-prim { background: var(--prim-bg) !important; color: var(--prim-tx) !important; }
+.col-ecc { box-shadow: inset 0 0 0 3px #000; }
+
+/* Soft tint on body cells under cycle */
+.tint-conf { background: #dff0d422 !important; }
+.tint-smen { background: #ffdbd822 !important; }
+.tint-mist { background: #cbf0ff22 !important; }
+.tint-prim { background: #efcaff22 !important; }
+
+/* Incrocio panel */
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip {
+  padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+  min-height: 36px; cursor: pointer;
+}
+.chip.on {
+  background: var(--purple); color: #fff; border-color: var(--purple);
+}
+.chip.on.conf { background: #166534; border-color: #22c55e; }
+.chip.on.smen { background: #991b1b; border-color: #ef4444; }
+.chip.on.mist { background: #075985; border-color: #38bdf8; }
+.chip.on.prim { background: #6b21a8; border-color: #c084fc; }
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; gap: 10px;
+}
+.toggle {
+  width: 48px; height: 28px; border-radius: 999px;
+  background: var(--bg3); border: 1px solid var(--border);
+  position: relative; cursor: pointer; flex-shrink: 0;
+}
+.toggle.on { background: var(--purple); border-color: var(--purple); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  transition: left .15s;
+}
+.toggle.on::after { left: 23px; }
+.form-row { margin-bottom: 10px; }
+.form-row label {
+  display: block; font-size: 11px; color: var(--text3);
+  margin-bottom: 4px; font-weight: 600; text-transform: uppercase;
+}
+.form-inline { display: flex; gap: 8px; }
+.form-inline > * { flex: 1; }
+
+/* Legend */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text2);
+}
+.legend span {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 6px; background: var(--bg2);
+}
+.swatch {
+  width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+}
+.swatch.ecc { box-shadow: inset 0 0 0 2px #000; background: #fff; }
+
+/* Storico filters */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-chip {
+  padding: 7px 11px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+  min-height: 34px; cursor: pointer;
+}
+.filter-chip.on { background: var(--purple); color: #fff; border-color: var(--purple); }
+
+/* Storico cards */
+.storico-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; margin: 10px 12px;
+}
+.storico-card .label-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.badge-tipo {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+}
+.badge-tipo.conf { background: var(--conf-bg); color: var(--conf-tx); }
+.badge-tipo.smen { background: var(--smen-bg); color: var(--smen-tx); }
+.badge-tipo.mist { background: var(--mist-bg); color: var(--mist-tx); }
+.badge-tipo.prim { background: var(--prim-bg); color: var(--prim-tx); }
+.badge-ecc {
+  font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
+  background: #111; color: #fff; border: 2px solid #fff;
+}
+.badge-fila {
+  font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
+  background: #fbbf2444; color: #fbbf24; border: 1px solid #fbbf24;
+}
+.badge-full {
+  font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
+  background: var(--bg3); color: var(--text3); border: 1px solid var(--border);
+}
+.meta-line { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+.meta-line strong { color: var(--text); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #2e1065; color: #fff; padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; z-index: 100;
+  box-shadow: 0 4px 20px #0008; opacity: 0; pointer-events: none;
+  transition: opacity .25s; max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; }
+
+/* Empty */
+.empty {
+  text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px;
+}
+.empty .ico { font-size: 36px; margin-bottom: 8px; }
+
+/* Mini grid in storico */
+.mini-grid-wrap { overflow-x: auto; margin-top: 6px; }
+.mini-grid {
+  display: grid; gap: 1px; width: max-content;
+}
+.mini-grid .mc {
+  width: 22px; height: 22px; font-size: 10px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg3); font-weight: 700;
+}
+.mini-grid .mc.header { height: 18px; font-size: 9px; color: var(--text2); }
+.mini-grid .mc.label { width: 36px; font-size: 8px; color: var(--text3); background: transparent; justify-content: flex-start; }
+.mini-grid .mc.ok { color: var(--ok); background: #14532d44; }
+.mini-grid .mc.ko { color: var(--ko); background: #7f1d1d44; }
+
+.section-pad { padding: 0 12px; margin-top: 8px; }
+.help { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.inc-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px; background: var(--bg2); border-radius: 10px;
+  margin-bottom: 6px; border: 1px solid var(--border); font-size: 12px;
+}
+.inc-list-item .acts { margin-left: auto; display: flex; gap: 4px; }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Cicli Finder <span class="badge">Maggioranza</span></h1>
+  <div class="tabs">
+    <button class="tab active" data-tab="nuovo" id="tabNuovo">Nuovo</button>
+    <button class="tab" data-tab="storico" id="tabStorico">Storico</button>
+  </div>
+</div>
+
+<!-- ========== TAB NUOVO ========== -->
+<div id="paneNuovo">
+  <div class="card" id="campListCard">
+    <div class="card-title">Campionati aperti</div>
+    <div id="campList"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="btnNuovoCamp">＋ Nuovo campionato</button>
+    </div>
+  </div>
+
+  <div id="nuovoCampForm" class="card hidden">
+    <div class="card-title">Nuovo campionato</div>
+    <div class="form-row">
+      <label>Nome</label>
+      <input id="newCampName" placeholder="CAMPIONATO 1" maxlength="40">
+    </div>
+    <div class="form-row">
+      <label>Data</label>
+      <input type="date" id="newCampDate">
+    </div>
+    <div class="form-row">
+      <label>Giornate (max)</label>
+      <input type="number" id="newCampGiornate" value="38" min="1" max="60">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btnCancelNewCamp">Annulla</button>
+      <button class="btn btn-primary" id="btnCreateCamp">Crea</button>
+    </div>
+  </div>
+
+  <div id="editorPane" class="hidden">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:15px;" id="edCampName">—</div>
+          <div class="meta" style="font-size:11px;color:var(--text3);" id="edCampMeta">—</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnBackList">← Lista</button>
+      </div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <label>Data campionato</label>
+        <input type="date" id="edCampDate">
+        <div class="help">Data in cui è stato fatto questo campionato</div>
+      </div>
+      <div class="legend" style="margin-bottom:8px;">
+        <span><i class="swatch" style="background:var(--conf-bg)"></i> Confermato</span>
+        <span><i class="swatch" style="background:var(--smen-bg)"></i> Smentito</span>
+        <span><i class="swatch" style="background:var(--mist-bg)"></i> Misto</span>
+        <span><i class="swatch" style="background:var(--prim-bg)"></i> Prima</span>
+        <span><i class="swatch ecc"></i> Eccezione</span>
+        <span>✅ ok · ❌ ko</span>
+      </div>
+      <div class="grid-wrap" id="gridWrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Incrocio</div>
+      <div class="form-row">
+        <label>Giornata (o range)</label>
+        <div class="form-inline">
+          <input type="number" id="incGStart" placeholder="Da" min="1">
+          <input type="number" id="incGEnd" placeholder="A (opz.)" min="1">
+        </div>
+        <div class="help">Range = stesso colore ciclo su più giornate consecutive</div>
+      </div>
+      <div class="form-row">
+        <label>Tipo</label>
+        <div class="chip-row" id="tipoChips">
+          <button class="chip" data-tipo="confermato">Confermato</button>
+          <button class="chip" data-tipo="smentito">Smentito</button>
+          <button class="chip" data-tipo="misto">Misto</button>
+          <button class="chip" data-tipo="prima">Prima</button>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div style="font-weight:600;font-size:13px;">Con eccezione</div>
+          <div class="help">Segnale giorno prima, stessa partita/ramo</div>
+        </div>
+        <div class="toggle" id="togEccezione" role="switch" aria-checked="false"></div>
+      </div>
+      <div class="form-row">
+        <label>Partite coinvolte — GOL</label>
+        <div class="chip-row" id="golChips"></div>
+      </div>
+      <div class="form-row">
+        <label>Partite coinvolte — OVER</label>
+        <div class="chip-row" id="overChips"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btnResetInc">Reset</button>
+        <button class="btn btn-primary" id="btnAddInc">Applica incrocio</button>
+      </div>
+      <div id="incList" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Azioni</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnSalva">Salva</button>
+        <button class="btn btn-ghost" id="btnChiudi">Chiudi campionato</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" id="btnExport">Esporta JSON</button>
+        <button class="btn btn-ghost btn-sm" id="btnImport">Importa JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-danger btn-sm" id="btnDeleteCamp">Elimina campionato</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB STORICO ========== -->
+<div id="paneStorico" class="hidden">
+  <div class="card">
+    <div class="card-title">Filtri</div>
+    <div class="filters" id="filtriTipo">
+      <button class="filter-chip" data-f="confermato">Confermato</button>
+      <button class="filter-chip" data-f="smentito">Smentito</button>
+      <button class="filter-chip" data-f="misto">Misto</button>
+      <button class="filter-chip" data-f="prima">Prima</button>
+    </div>
+    <div class="filters" style="margin-top:8px;" id="filtriExtra">
+      <button class="filter-chip" data-f="eccezione">Solo eccezione</button>
+      <button class="filter-chip" data-f="streak">Solo streak</button>
+      <button class="filter-chip" data-f="soloCicli">Solo cicli</button>
+      <button class="filter-chip" data-f="soloFull">Solo campionati</button>
+    </div>
+  </div>
+  <div id="storicoList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+const STORAGE_KEY = 'cicli-finder-maggioranza-v1';
+const TIPI = ['confermato', 'smentito', 'misto', 'prima'];
+const TIPO_CLASS = { confermato: 'conf', smentito: 'smen', misto: 'mist', prima: 'prim' };
+const TIPO_LABEL = { confermato: 'Confermato', smentito: 'Smentito', misto: 'Misto', prima: 'Prima' };
+
+// ---------- State ----------
+let state = load();
+let activeCampId = null;
+let currentTab = 'nuovo';
+let incDraft = { tipo: 'confermato', conEccezione: false, matches: [] };
+let filters = { tipi: new Set(), eccezione: false, streak: false, soloCicli: false, soloFull: false };
+
+function uid() {
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function defaultState() {
+  return { campionati: [], storico: [], version: 1 };
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const d = JSON.parse(raw);
+    if (!d.campionati) d.campionati = [];
+    if (!d.storico) d.storico = [];
+    return d;
+  } catch (e) {
+    return defaultState();
+  }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getActiveCamp() {
+  return state.campionati.find(c => c.id === activeCampId) || null;
+}
+
+// ---------- Cycle map ----------
+/** Build map giornata -> {tipo, conEccezione, incrocioId} from incroci (with ranges) */
+function buildCycleMap(camp) {
+  const map = {};
+  const incs = (camp.incroci || []).slice().sort((a, b) => a.gStart - b.gStart);
+  // Paint each incrocio's explicit range first
+  for (const inc of incs) {
+    const end = inc.gEnd || inc.gStart;
+    for (let g = inc.gStart; g <= end; g++) {
+      map[g] = { tipo: inc.tipo, conEccezione: !!inc.conEccezione, incrocioId: inc.id, painted: true };
+    }
+  }
+  // Extend cycles: from each incrocio start through day before next incrocio (or end)
+  // Only fill unpainted gaps between painted blocks belonging to consecutive incroci
+  const starts = incs.map(i => i.gStart);
+  for (let i = 0; i < incs.length; i++) {
+    const inc = incs[i];
+    const paintEnd = inc.gEnd || inc.gStart;
+    const nextStart = i + 1 < incs.length ? incs[i + 1].gStart : camp.giornateMax + 1;
+    for (let g = paintEnd + 1; g < nextStart; g++) {
+      if (!map[g]) {
+        map[g] = { tipo: inc.tipo, conEccezione: !!inc.conEccezione, incrocioId: inc.id, painted: false };
+      }
+    }
+  }
+  return map;
+}
+
+/** Extract cicli blocks from a campionato for storico */
+function extractCicli(camp) {
+  const incs = (camp.incroci || []).slice().sort((a, b) => a.gStart - b.gStart);
+  if (!incs.length) return [];
+  const cicli = [];
+  for (let i = 0; i < incs.length; i++) {
+    const inc = incs[i];
+    const nextStart = i + 1 < incs.length ? incs[i + 1].gStart : null;
+    const gEnd = nextStart ? nextStart - 1 : camp.giornateMax;
+    const paintEnd = Math.max(inc.gEnd || inc.gStart, gEnd);
+    // Actual cycle span: from gStart of this incrocio through day before next (or end)
+    const cicloEnd = nextStart ? nextStart - 1 : camp.giornateMax;
+    const cicloStart = inc.gStart;
+    cicli.push({
+      id: uid(),
+      campionatoId: camp.id,
+      campionatoName: camp.name,
+      campionatoDate: camp.date,
+      tipo: inc.tipo,
+      conEccezione: !!inc.conEccezione,
+      gStart: cicloStart,
+      gEnd: cicloEnd,
+      matches: (inc.matches || []).slice(),
+      signals: sliceSignals(camp, cicloStart, cicloEnd),
+      diFila: false,
+      mergedFrom: 1,
+      hasStreak: computeStreak(camp, inc, cicloStart, cicloEnd),
+      kind: 'ciclo',
+      snapshotIncrocio: { ...inc }
+    });
+  }
+  // Merge consecutive same type + same conEccezione
+  const merged = [];
+  for (const c of cicli) {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.tipo === c.tipo && !!prev.conEccezione === !!c.conEccezione) {
+      prev.gEnd = c.gEnd;
+      prev.mergedFrom += 1;
+      prev.diFila = true;
+      prev.hasStreak = prev.hasStreak || c.hasStreak;
+      prev.signals = sliceSignals(camp, prev.gStart, prev.gEnd);
+      prev.matches = uniqMatches([...(prev.matches || []), ...(c.matches || [])]);
+    } else {
+      merged.push(c);
+    }
+  }
+  return merged;
+}
+
+function uniqMatches(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const m of arr) {
+    const k = m.ramo + ':' + m.n;
+    if (!seen.has(k)) { seen.add(k); out.push(m); }
+  }
+  return out;
+}
+
+function sliceSignals(camp, gStart, gEnd) {
+  const out = {};
+  const sigs = camp.signals || {};
+  for (let g = gStart; g <= gEnd; g++) {
+    if (sigs[g]) out[g] = JSON.parse(JSON.stringify(sigs[g]));
+  }
+  return out;
+}
+
+/** Streak: same partita+ramo has signals on incrocio day and/or immediately adjacent days continuing */
+function computeStreak(camp, inc, cicloStart, cicloEnd) {
+  const matches = inc.matches || [];
+  if (!matches.length) return false;
+  const sigs = camp.signals || {};
+  for (const m of matches) {
+    // Check consecutive days around/after incrocio with signals on same match
+    let run = 0;
+    for (let g = Math.max(1, inc.gStart - 1); g <= Math.min(camp.giornateMax, (inc.gEnd || inc.gStart) + 3); g++) {
+      const cell = sigs[g] && sigs[g][m.ramo] && sigs[g][m.ramo][m.n];
+      if (cell === 'ok' || cell === 'ko') {
+        run++;
+        if (run >= 2) return true;
+      } else {
+        run = 0;
+      }
+    }
+  }
+  return false;
+}
+
+// ---------- Rendering ----------
+function render() {
+  document.getElementById('paneNuovo').classList.toggle('hidden', currentTab !== 'nuovo');
+  document.getElementById('paneStorico').classList.toggle('hidden', currentTab !== 'storico');
+  document.getElementById('tabNuovo').classList.toggle('active', currentTab === 'nuovo');
+  document.getElementById('tabStorico').classList.toggle('active', currentTab === 'storico');
+  if (currentTab === 'nuovo') renderNuovo();
+  else renderStorico();
+}
+
+function renderNuovo() {
+  const listEl = document.getElementById('campList');
+  const open = state.campionati.filter(c => c.status === 'aperto');
+  if (!activeCampId) {
+    document.getElementById('campListCard').classList.remove('hidden');
+    document.getElementById('editorPane').classList.add('hidden');
+    if (!open.length) {
+      listEl.innerHTML = '<div class="empty"><div class="ico">📋</div>Nessun campionato aperto.<br>Creane uno nuovo.</div>';
+    } else {
+      listEl.innerHTML = open.map(c => `
+        <div class="camp-item" data-id="${c.id}">
+          <div class="status-dot"></div>
+          <div style="flex:1">
+            <div class="name">${esc(c.name)}</div>
+            <div class="meta">${c.date} · ${c.giornateMax} giornate · ${(c.incroci||[]).length} incroci</div>
+          </div>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('.camp-item').forEach(el => {
+        el.addEventListener('click', () => {
+          activeCampId = el.dataset.id;
+          render();
+        });
+      });
+    }
+    return;
+  }
+  document.getElementById('campListCard').classList.add('hidden');
+  document.getElementById('nuovoCampForm').classList.add('hidden');
+  document.getElementById('editorPane').classList.remove('hidden');
+  const camp = getActiveCamp();
+  if (!camp) { activeCampId = null; render(); return; }
+  document.getElementById('edCampName').textContent = camp.name;
+  document.getElementById('edCampMeta').textContent = `${camp.giornateMax} giornate · status: ${camp.status}`;
+  const edDate = document.getElementById('edCampDate');
+  edDate.value = camp.date || '';
+  edDate.onchange = () => {
+    const c = getActiveCamp();
+    if (!c) return;
+    c.date = edDate.value || todayISO();
+    save();
+  };
+  renderGrid(camp);
+  renderIncPanel(camp);
+}
+
+function renderGrid(camp) {
+  const wrap = document.getElementById('gridWrap');
+  const N = camp.giornateMax;
+  const cycleMap = buildCycleMap(camp);
+  // rows: header + GOL1-6 + OVER1-6 = 1 + 12
+  const cols = N + 1; // label + giornate
+  let html = `<div class="sig-grid" style="grid-template-columns: 52px repeat(${N}, 36px);">`;
+
+  // Header
+  html += `<div class="cell label corner"></div>`;
+  for (let g = 1; g <= N; g++) {
+    const cy = cycleMap[g];
+    let cls = 'cell header';
+    if (cy) {
+      cls += ' col-' + TIPO_CLASS[cy.tipo];
+      if (cy.conEccezione) cls += ' col-ecc';
+    }
+    html += `<div class="${cls}" data-g="${g}" title="G${g}">${g}</div>`;
+  }
+
+  // GOL section label row spacer? Just label each row
+  for (const ramo of ['gol', 'over']) {
+    for (let n = 1; n <= 6; n++) {
+      const lab = n + (ramo === 'gol' ? 'G' : 'O');
+      html += `<div class="cell label">${lab}</div>`;
+      for (let g = 1; g <= N; g++) {
+        const sig = (camp.signals && camp.signals[g] && camp.signals[g][ramo] && camp.signals[g][ramo][n]) || '';
+        const cy = cycleMap[g];
+        let cls = 'cell tap';
+        if (sig === 'ok') cls += ' ok';
+        else if (sig === 'ko') cls += ' ko';
+        if (cy && !sig) cls += ' tint-' + TIPO_CLASS[cy.tipo];
+        const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
+        html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
+      }
+    }
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.cell.tap').forEach(el => {
+    el.addEventListener('click', () => {
+      const g = +el.dataset.g;
+      const ramo = el.dataset.ramo;
+      const n = +el.dataset.n;
+      cycleSignal(camp, g, ramo, n);
+      renderGrid(camp);
+      // auto-save lightly
+      save();
+    });
+  });
+}
+
+function cycleSignal(camp, g, ramo, n) {
+  if (!camp.signals) camp.signals = {};
+  if (!camp.signals[g]) camp.signals[g] = { gol: {}, over: {} };
+  if (!camp.signals[g][ramo]) camp.signals[g][ramo] = {};
+  const cur = camp.signals[g][ramo][n] || '';
+  const next = cur === '' ? 'ok' : cur === 'ok' ? 'ko' : '';
+  if (next === '') delete camp.signals[g][ramo][n];
+  else camp.signals[g][ramo][n] = next;
+}
+
+function renderIncPanel(camp) {
+  // tipo chips
+  document.querySelectorAll('#tipoChips .chip').forEach(ch => {
+    ch.classList.toggle('on', ch.dataset.tipo === incDraft.tipo);
+    TIPI.forEach(t => ch.classList.remove(TIPO_CLASS[t]));
+    if (ch.dataset.tipo === incDraft.tipo) ch.classList.add('on', TIPO_CLASS[incDraft.tipo]);
+  });
+  document.getElementById('togEccezione').classList.toggle('on', !!incDraft.conEccezione);
+  document.getElementById('togEccezione').setAttribute('aria-checked', !!incDraft.conEccezione);
+
+  // match chips
+  const golEl = document.getElementById('golChips');
+  const overEl = document.getElementById('overChips');
+  golEl.innerHTML = '';
+  overEl.innerHTML = '';
+  for (let n = 1; n <= 6; n++) {
+    golEl.appendChild(makeMatchChip('gol', n));
+    overEl.appendChild(makeMatchChip('over', n));
+  }
+
+  // list existing
+  const list = document.getElementById('incList');
+  const incs = (camp.incroci || []).slice().sort((a, b) => a.gStart - b.gStart);
+  if (!incs.length) {
+    list.innerHTML = '<div class="help">Nessun incrocio ancora.</div>';
+  } else {
+    list.innerHTML = incs.map(inc => {
+      const range = inc.gEnd && inc.gEnd !== inc.gStart ? `G${inc.gStart}–${inc.gEnd}` : `G${inc.gStart}`;
+      const mats = (inc.matches || []).map(m => (m.ramo === 'gol' ? 'G' : 'O') + m.n).join(' ');
+      return `<div class="inc-list-item" data-id="${inc.id}">
+        <span class="badge-tipo ${TIPO_CLASS[inc.tipo]}">${TIPO_LABEL[inc.tipo]}</span>
+        ${inc.conEccezione ? '<span class="badge-ecc">ECC</span>' : ''}
+        <span><strong>${range}</strong> ${esc(mats)}</span>
+        <div class="acts">
+          <button class="btn btn-ghost btn-sm btn-edit-inc" data-id="${inc.id}">Mod</button>
+          <button class="btn btn-danger btn-sm btn-del-inc" data-id="${inc.id}">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.btn-del-inc').forEach(b => {
+      b.addEventListener('click', () => {
+        camp.incroci = camp.incroci.filter(i => i.id !== b.dataset.id);
+        save(); render();
+      });
+    });
+    list.querySelectorAll('.btn-edit-inc').forEach(b => {
+      b.addEventListener('click', () => {
+        const inc = camp.incroci.find(i => i.id === b.dataset.id);
+        if (!inc) return;
+        document.getElementById('incGStart').value = inc.gStart;
+        document.getElementById('incGEnd').value = inc.gEnd && inc.gEnd !== inc.gStart ? inc.gEnd : '';
+        incDraft = {
+          tipo: inc.tipo,
+          conEccezione: !!inc.conEccezione,
+          matches: (inc.matches || []).map(m => ({ ...m })),
+          editId: inc.id
+        };
+        renderIncPanel(camp);
+        toast('Modifica incrocio — poi Applica');
+      });
+    });
+  }
+}
+
+function makeMatchChip(ramo, n) {
+  const btn = document.createElement('button');
+  btn.className = 'chip';
+  const on = incDraft.matches.some(m => m.ramo === ramo && m.n === n);
+  if (on) btn.classList.add('on');
+  btn.textContent = (ramo === 'gol' ? 'Gol ' : 'Over ') + n;
+  btn.addEventListener('click', () => {
+    const idx = incDraft.matches.findIndex(m => m.ramo === ramo && m.n === n);
+    if (idx >= 0) incDraft.matches.splice(idx, 1);
+    else incDraft.matches.push({ ramo, n });
+    const camp = getActiveCamp();
+    if (camp) renderIncPanel(camp);
+  });
+  return btn;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---------- Storico ----------
+function renderStorico() {
+  const list = document.getElementById('storicoList');
+  let items = (state.storico || []).slice().reverse();
+
+  // Apply filters
+  const tipiOn = filters.tipi;
+  items = items.filter(it => {
+    if (filters.soloCicli && it.kind === 'campionato') return false;
+    if (filters.soloFull && it.kind !== 'campionato') return false;
+    if (it.kind === 'campionato') {
+      // full campionato: show if any ciclo matches, or if no tipo filters
+      if (tipiOn.size === 0 && !filters.eccezione && !filters.streak) return true;
+      const cicli = it.cicli || [];
+      return cicli.some(c => matchCicloFilter(c));
+    }
+    return matchCicloFilter(it);
+  });
+
+  // filter chips UI
+  document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
+    ch.classList.toggle('on', filters.tipi.has(ch.dataset.f));
+  });
+  document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
+    const f = ch.dataset.f;
+    ch.classList.toggle('on', !!filters[f] || (f === 'eccezione' && filters.eccezione) || (f === 'streak' && filters.streak) || (f === 'soloCicli' && filters.soloCicli) || (f === 'soloFull' && filters.soloFull));
+  });
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><div class="ico">📚</div>Storico vuoto o nessun risultato coi filtri.</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(it => {
+    if (it.kind === 'campionato') return renderFullCard(it);
+    return renderCicloCard(it);
+  }).join('');
+
+  list.querySelectorAll('.btn-del-storico').forEach(b => {
+    b.addEventListener('click', () => {
+      state.storico = state.storico.filter(x => x.id !== b.dataset.id);
+      save(); renderStorico(); toast('Eliminato dallo storico');
+    });
+  });
+}
+
+function matchCicloFilter(c) {
+  if (filters.tipi.size && !filters.tipi.has(c.tipo)) return false;
+  if (filters.eccezione && !c.conEccezione) return false;
+  if (filters.streak && !c.hasStreak) return false;
+  return true;
+}
+
+function renderCicloCard(it) {
+  const range = it.gStart === it.gEnd ? `G${it.gStart}` : `G${it.gStart}–${it.gEnd}`;
+  return `<div class="storico-card" data-id="${it.id}">
+    <div class="label-row">
+      <span class="badge-tipo ${TIPO_CLASS[it.tipo]}">${TIPO_LABEL[it.tipo]}</span>
+      ${it.conEccezione ? '<span class="badge-ecc">ECCEZIONE</span>' : ''}
+      ${it.diFila ? '<span class="badge-fila">DI FILA ×' + it.mergedFrom + '</span>' : ''}
+      ${it.hasStreak ? '<span class="badge-fila" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK</span>' : ''}
+    </div>
+    <div class="meta-line"><strong>${esc(it.campionatoName)}</strong> · ${esc(it.campionatoDate)} · ${range}</div>
+    <div class="mini-grid-wrap">${miniGridHtml(it)}</div>
+    <div class="btn-row"><button class="btn btn-danger btn-sm btn-del-storico" data-id="${it.id}">Elimina</button></div>
+  </div>`;
+}
+
+function renderFullCard(it) {
+  const camp = it.snapshot;
+  return `<div class="storico-card" data-id="${it.id}">
+    <div class="label-row">
+      <span class="badge-full">CAMPIONATO</span>
+      <span style="font-weight:700;">${esc(camp.name)}</span>
+    </div>
+    <div class="meta-line">${esc(camp.date)} · ${camp.giornateMax} giornate · ${(camp.incroci||[]).length} incroci · ${(it.cicli||[]).length} cicli</div>
+    <div class="mini-grid-wrap">${miniGridHtmlFromCamp(camp)}</div>
+    <div class="btn-row"><button class="btn btn-danger btn-sm btn-del-storico" data-id="${it.id}">Elimina</button></div>
+  </div>`;
+}
+
+function miniGridHtml(it) {
+  const gStart = it.gStart, gEnd = it.gEnd;
+  const N = gEnd - gStart + 1;
+  const sigs = it.signals || {};
+  let html = `<div class="mini-grid" style="grid-template-columns: 36px repeat(${N}, 22px);">`;
+  html += `<div class="mc label"></div>`;
+  for (let g = gStart; g <= gEnd; g++) {
+    let cls = 'mc header col-' + TIPO_CLASS[it.tipo];
+    if (it.conEccezione) cls += ' col-ecc';
+    html += `<div class="${cls}">${g}</div>`;
+  }
+  for (const ramo of ['gol', 'over']) {
+    for (let n = 1; n <= 6; n++) {
+      html += `<div class="mc label">${ramo[0].toUpperCase()}${n}</div>`;
+      for (let g = gStart; g <= gEnd; g++) {
+        const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
+        let cls = 'mc';
+        let icon = '';
+        if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
+        else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
+        html += `<div class="${cls}">${icon}</div>`;
+      }
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+function miniGridHtmlFromCamp(camp) {
+  const N = Math.min(camp.giornateMax, 20); // cap display
+  const cycleMap = buildCycleMap(camp);
+  const sigs = camp.signals || {};
+  let html = `<div class="mini-grid" style="grid-template-columns: 36px repeat(${N}, 22px);">`;
+  html += `<div class="mc label"></div>`;
+  for (let g = 1; g <= N; g++) {
+    const cy = cycleMap[g];
+    let cls = 'mc header';
+    if (cy) {
+      cls += ' col-' + TIPO_CLASS[cy.tipo];
+      if (cy.conEccezione) cls += ' col-ecc';
+    }
+    html += `<div class="${cls}">${g}</div>`;
+  }
+  for (const ramo of ['gol', 'over']) {
+    for (let n = 1; n <= 6; n++) {
+      html += `<div class="mc label">${ramo[0].toUpperCase()}${n}</div>`;
+      for (let g = 1; g <= N; g++) {
+        const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
+        let cls = 'mc';
+        let icon = '';
+        if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
+        else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
+        html += `<div class="${cls}">${icon}</div>`;
+      }
+    }
+  }
+  html += '</div>';
+  if (camp.giornateMax > 20) html += `<div class="help">Anteprima G1–20 di ${camp.giornateMax}</div>`;
+  return html;
+}
+
+// ---------- Actions ----------
+function createCampionato(name, date, giornateMax) {
+  const c = {
+    id: uid(),
+    name: name || 'CAMPIONATO',
+    date: date || todayISO(),
+    status: 'aperto',
+    giornateMax: giornateMax || 38,
+    incroci: [],
+    signals: {},
+    createdAt: new Date().toISOString()
+  };
+  state.campionati.push(c);
+  save();
+  activeCampId = c.id;
+  return c;
+}
+
+function applyIncrocio() {
+  const camp = getActiveCamp();
+  if (!camp) return;
+  const gStart = parseInt(document.getElementById('incGStart').value, 10);
+  let gEnd = parseInt(document.getElementById('incGEnd').value, 10);
+  if (!gStart || gStart < 1 || gStart > camp.giornateMax) {
+    toast('Giornata non valida'); return;
+  }
+  if (!gEnd || isNaN(gEnd)) gEnd = gStart;
+  if (gEnd < gStart) gEnd = gStart;
+  if (gEnd > camp.giornateMax) gEnd = camp.giornateMax;
+  if (!incDraft.tipo) { toast('Scegli un tipo'); return; }
+
+  const payload = {
+    id: incDraft.editId || uid(),
+    gStart, gEnd,
+    tipo: incDraft.tipo,
+    conEccezione: !!incDraft.conEccezione,
+    matches: incDraft.matches.map(m => ({ ramo: m.ramo, n: m.n }))
+  };
+
+  if (!camp.incroci) camp.incroci = [];
+  if (incDraft.editId) {
+    const idx = camp.incroci.findIndex(i => i.id === incDraft.editId);
+    if (idx >= 0) camp.incroci[idx] = payload;
+    else camp.incroci.push(payload);
+  } else {
+    // overwrite overlapping painted range same start? just add
+    camp.incroci.push(payload);
+  }
+  save();
+  resetIncDraft();
+  render();
+  toast('Incrocio applicato');
+}
+
+function resetIncDraft() {
+  incDraft = { tipo: 'confermato', conEccezione: false, matches: [] };
+  document.getElementById('incGStart').value = '';
+  document.getElementById('incGEnd').value = '';
+}
+
+function chiudiCampionato() {
+  const camp = getActiveCamp();
+  if (!camp) return;
+  if (!confirm('Chiudere il campionato e archiviarlo nello storico?')) return;
+  applyPendingIncrocio();
+  archiveCampionato(camp);
+  camp.status = 'chiuso';
+  save();
+  activeCampId = null;
+  currentTab = 'storico';
+  render();
+  toast('Campionato chiuso → Storico');
+}
+
+function archiveCampionato(camp) {
+  const cicli = extractCicli(camp);
+  // Full snapshot
+  state.storico.push({
+    id: uid(),
+    kind: 'campionato',
+    archivedAt: new Date().toISOString(),
+    snapshot: JSON.parse(JSON.stringify(camp)),
+    cicli: cicli.map(c => ({ ...c }))
+  });
+  // Each ciclo separately
+  for (const c of cicli) {
+    state.storico.push({
+      ...c,
+      id: uid(),
+      archivedAt: new Date().toISOString(),
+      kind: 'ciclo'
+    });
+  }
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cicli-finder-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('JSON esportato');
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.campionati || !data.storico) throw new Error('Formato non valido');
+      if (!confirm('Sostituire tutti i dati locali con il file importato?')) return;
+      state = data;
+      save();
+      activeCampId = null;
+      render();
+      toast('Import completato');
+    } catch (e) {
+      toast('Errore import: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Events ----------
+document.getElementById('tabNuovo').addEventListener('click', () => { currentTab = 'nuovo'; render(); });
+document.getElementById('tabStorico').addEventListener('click', () => { currentTab = 'storico'; render(); });
+
+document.getElementById('btnNuovoCamp').addEventListener('click', () => {
+  document.getElementById('nuovoCampForm').classList.remove('hidden');
+  document.getElementById('newCampName').value = 'CAMPIONATO ' + (state.campionati.length + 1);
+  document.getElementById('newCampDate').value = todayISO();
+  document.getElementById('newCampGiornate').value = 38;
+});
+document.getElementById('btnCancelNewCamp').addEventListener('click', () => {
+  document.getElementById('nuovoCampForm').classList.add('hidden');
+});
+document.getElementById('btnCreateCamp').addEventListener('click', () => {
+  const name = document.getElementById('newCampName').value.trim() || 'CAMPIONATO';
+  const date = document.getElementById('newCampDate').value || todayISO();
+  const g = parseInt(document.getElementById('newCampGiornate').value, 10) || 38;
+  createCampionato(name, date, g);
+  document.getElementById('nuovoCampForm').classList.add('hidden');
+  render();
+  toast('Campionato creato');
+});
+
+document.getElementById('btnBackList').addEventListener('click', () => {
+  activeCampId = null; render();
+});
+
+document.querySelectorAll('#tipoChips .chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    incDraft.tipo = ch.dataset.tipo;
+    const camp = getActiveCamp();
+    if (camp) renderIncPanel(camp);
+  });
+});
+
+document.getElementById('togEccezione').addEventListener('click', () => {
+  incDraft.conEccezione = !incDraft.conEccezione;
+  const camp = getActiveCamp();
+  if (camp) renderIncPanel(camp);
+});
+
+document.getElementById('btnAddInc').addEventListener('click', applyIncrocio);
+document.getElementById('btnResetInc').addEventListener('click', () => {
+  resetIncDraft();
+  const camp = getActiveCamp();
+  if (camp) renderIncPanel(camp);
+});
+
+function applyPendingIncrocio() {
+  const gs = document.getElementById('incGStart').value;
+  if (gs && getActiveCamp()) { applyIncrocio(); return true; }
+  return false;
+}
+document.getElementById('btnSalva').addEventListener('click', () => {
+  const applied = applyPendingIncrocio();
+  save(); toast(applied ? 'Incrocio applicato e salvato' : 'Salvato');
+});
+document.getElementById('btnChiudi').addEventListener('click', chiudiCampionato);
+document.getElementById('btnExport').addEventListener('click', exportJSON);
+document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) importJSON(f);
+  e.target.value = '';
+});
+document.getElementById('btnDeleteCamp').addEventListener('click', () => {
+  const camp = getActiveCamp();
+  if (!camp) return;
+  if (!confirm('Eliminare definitivamente ' + camp.name + '?')) return;
+  state.campionati = state.campionati.filter(c => c.id !== camp.id);
+  save();
+  activeCampId = null;
+  render();
+  toast('Eliminato');
+});
+
+document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    const t = ch.dataset.f;
+    if (filters.tipi.has(t)) filters.tipi.delete(t);
+    else filters.tipi.add(t);
+    renderStorico();
+  });
+});
+document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    const f = ch.dataset.f;
+    if (f === 'eccezione') filters.eccezione = !filters.eccezione;
+    else if (f === 'streak') filters.streak = !filters.streak;
+    else if (f === 'soloCicli') { filters.soloCicli = !filters.soloCicli; if (filters.soloCicli) filters.soloFull = false; }
+    else if (f === 'soloFull') { filters.soloFull = !filters.soloFull; if (filters.soloFull) filters.soloCicli = false; }
+    renderStorico();
+  });
+});
+
+// Expose for smoke tests
+window.__CF = {
+  getState: () => state,
+  setState: (s) => { state = s; save(); },
+  createCampionato,
+  getActiveCamp,
+  setActive: (id) => { activeCampId = id; },
+  applyIncrocio,
+  archiveCampionato,
+  extractCicli,
+  buildCycleMap,
+  render,
+  save,
+  STORAGE_KEY
+};
+
+render();
+})();
+</script>
+</body>
+</html>
