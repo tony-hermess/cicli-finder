@@ -19,14 +19,19 @@
   --text3: #8b7a9e;
   --ok: #22c55e;
   --ko: #ef4444;
-  --conf-bg: #dff0d4;
-  --conf-tx: #166534;
-  --smen-bg: #ffdbd8;
-  --smen-tx: #991b1b;
-  --mist-bg: #cbf0ff;
-  --mist-tx: #075985;
-  --prim-bg: #efcaff;
-  --prim-tx: #6b21a8;
+  --conf: #3ddc84;
+  --smen: #ff5c6c;
+  --mist: #4fc3f7;
+  --prim: #c084fc;
+  --ecc: #f5c542;
+  --conf-bg: #3ddc8433;
+  --conf-tx: #3ddc84;
+  --smen-bg: #ff5c6c33;
+  --smen-tx: #ff5c6c;
+  --mist-bg: #4fc3f733;
+  --mist-tx: #4fc3f7;
+  --prim-bg: #c084fc33;
+  --prim-tx: #e9d5ff;
   --danger: #f87171;
   --radius: 14px;
   --tap: 44px;
@@ -178,18 +183,30 @@ input:focus, select:focus { border-color: var(--purple); }
 .sig-grid .cell.ko { background: #7f1d1d44; color: var(--ko); border-color: #ef444455; }
 .sig-grid .cell.tap:active { transform: scale(.9); }
 
-/* Cycle column colors on header */
-.col-conf { background: var(--conf-bg) !important; color: var(--conf-tx) !important; }
-.col-smen { background: var(--smen-bg) !important; color: var(--smen-tx) !important; }
-.col-mist { background: var(--mist-bg) !important; color: var(--mist-tx) !important; }
-.col-prim { background: var(--prim-bg) !important; color: var(--prim-tx) !important; }
-.col-ecc { box-shadow: inset 0 0 0 3px #000; }
+/* ciclo-colori-v2 */
+/* Cycle column colors: confermato verde, smentito rosso, misto azzurro, prima viola */
+.col-conf { background: var(--conf-bg) !important; color: var(--conf-tx) !important; box-shadow: inset 0 -3px 0 var(--conf); }
+.col-smen { background: var(--smen-bg) !important; color: var(--smen-tx) !important; box-shadow: inset 0 -3px 0 var(--smen); }
+.col-mist { background: var(--mist-bg) !important; color: var(--mist-tx) !important; box-shadow: inset 0 -3px 0 var(--mist); }
+.col-prim { background: var(--prim-bg) !important; color: var(--prim-tx) !important; box-shadow: inset 0 -3px 0 var(--prim); }
+.col-ecc { box-shadow: inset 0 0 0 3px var(--ecc) !important; }
 
-/* Soft tint on body cells under cycle */
-.tint-conf { background: #dff0d422 !important; }
-.tint-smen { background: #ffdbd822 !important; }
-.tint-mist { background: #cbf0ff22 !important; }
-.tint-prim { background: #efcaff22 !important; }
+/* Tint on giornata cells of the ciclo */
+.tint-conf { background: #3ddc842e !important; box-shadow: inset 0 0 0 1px #3ddc8455; }
+.tint-smen { background: #ff5c6c2e !important; box-shadow: inset 0 0 0 1px #ff5c6c55; }
+.tint-mist { background: #4fc3f72e !important; box-shadow: inset 0 0 0 1px #4fc3f755; }
+.tint-prim { background: #c084fc2e !important; box-shadow: inset 0 0 0 1px #c084fc55; }
+
+/* Eccezione: tutta la colonna (riga di celle) della giornata dell'incrocio */
+.sig-grid .cell.ecc-row,
+.mini-grid .mc.ecc-row {
+  box-shadow: inset 0 0 0 3px var(--ecc) !important;
+}
+.sig-grid .cell.ecc-row:not(.ok):not(.ko),
+.mini-grid .mc.ecc-row:not(.ok):not(.ko):not(.header) {
+  background: #f5c54240 !important;
+}
+.sig-grid .cell.header.ecc-row { color: var(--ecc) !important; }
 
 /* Incrocio panel */
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -201,10 +218,10 @@ input:focus, select:focus { border-color: var(--purple); }
 .chip.on {
   background: var(--purple); color: #fff; border-color: var(--purple);
 }
-.chip.on.conf { background: #166534; border-color: #22c55e; }
-.chip.on.smen { background: #991b1b; border-color: #ef4444; }
-.chip.on.mist { background: #075985; border-color: #38bdf8; }
-.chip.on.prim { background: #6b21a8; border-color: #c084fc; }
+.chip.on.conf { background: #3ddc8433; color: var(--conf); border-color: var(--conf); }
+.chip.on.smen { background: #ff5c6c33; color: var(--smen); border-color: var(--smen); }
+.chip.on.mist { background: #4fc3f733; color: var(--mist); border-color: var(--mist); }
+.chip.on.prim { background: #c084fc33; color: var(--prim); border-color: var(--prim); }
 .toggle-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 0; gap: 10px;
@@ -240,7 +257,7 @@ input:focus, select:focus { border-color: var(--purple); }
 .swatch {
   width: 12px; height: 12px; border-radius: 3px; display: inline-block;
 }
-.swatch.ecc { box-shadow: inset 0 0 0 2px #000; background: #fff; }
+.swatch.ecc { box-shadow: inset 0 0 0 3px var(--ecc); background: #f5c54255; }
 
 /* Storico filters */
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -250,6 +267,11 @@ input:focus, select:focus { border-color: var(--purple); }
   min-height: 34px; cursor: pointer;
 }
 .filter-chip.on { background: var(--purple); color: #fff; border-color: var(--purple); }
+.filter-chip.on[data-f="confermato"] { background: #3ddc8433; color: var(--conf); border-color: var(--conf); }
+.filter-chip.on[data-f="smentito"] { background: #ff5c6c33; color: var(--smen); border-color: var(--smen); }
+.filter-chip.on[data-f="misto"] { background: #4fc3f733; color: var(--mist); border-color: var(--mist); }
+.filter-chip.on[data-f="prima"] { background: #c084fc33; color: var(--prim); border-color: var(--prim); }
+.filter-chip.on[data-f="eccezione"] { background: #f5c54233; color: var(--ecc); border-color: var(--ecc); }
 
 /* Storico cards */
 .storico-card {
@@ -268,7 +290,7 @@ input:focus, select:focus { border-color: var(--purple); }
 .badge-tipo.prim { background: var(--prim-bg); color: var(--prim-tx); }
 .badge-ecc {
   font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
-  background: #111; color: #fff; border: 2px solid #fff;
+  background: #f5c54233; color: var(--ecc); border: 2px solid var(--ecc);
 }
 .badge-fila {
   font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
@@ -376,10 +398,10 @@ input:focus, select:focus { border-color: var(--purple); }
         <div class="help">Data in cui è stato fatto questo campionato</div>
       </div>
       <div class="legend" style="margin-bottom:8px;">
-        <span><i class="swatch" style="background:var(--conf-bg)"></i> Confermato</span>
-        <span><i class="swatch" style="background:var(--smen-bg)"></i> Smentito</span>
-        <span><i class="swatch" style="background:var(--mist-bg)"></i> Misto</span>
-        <span><i class="swatch" style="background:var(--prim-bg)"></i> Prima</span>
+        <span><i class="swatch" style="background:var(--conf)"></i> Confermato</span>
+        <span><i class="swatch" style="background:var(--smen)"></i> Smentito</span>
+        <span><i class="swatch" style="background:var(--mist)"></i> Misto</span>
+        <span><i class="swatch" style="background:var(--prim)"></i> Prima</span>
         <span><i class="swatch ecc"></i> Eccezione</span>
         <span>✅ ok · ❌ ko</span>
       </div>
@@ -716,7 +738,7 @@ function renderGrid(camp) {
     let cls = 'cell header';
     if (cy) {
       cls += ' col-' + TIPO_CLASS[cy.tipo];
-      if (cy.conEccezione) cls += ' col-ecc';
+      if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
     }
     html += `<div class="${cls}" data-g="${g}" title="G${g}">${g}</div>`;
   }
@@ -733,6 +755,7 @@ function renderGrid(camp) {
         if (sig === 'ok') cls += ' ok';
         else if (sig === 'ko') cls += ' ko';
         if (cy && !sig) cls += ' tint-' + TIPO_CLASS[cy.tipo];
+        if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
         html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
       }
@@ -936,9 +959,18 @@ function miniGridHtml(it) {
   const sigs = it.signals || {};
   let html = `<div class="mini-grid" style="grid-template-columns: 36px repeat(${N}, 22px);">`;
   html += `<div class="mc label"></div>`;
+  const incSnap = it.snapshotIncrocio;
+  const eccDay = (g) => {
+    if (!it.conEccezione) return false;
+    if (incSnap && incSnap.gStart) {
+      const a = incSnap.gStart, b = incSnap.gEnd || incSnap.gStart;
+      return g >= a && g <= b;
+    }
+    return true;
+  };
   for (let g = gStart; g <= gEnd; g++) {
     let cls = 'mc header col-' + TIPO_CLASS[it.tipo];
-    if (it.conEccezione) cls += ' col-ecc';
+    if (eccDay(g)) cls += ' col-ecc ecc-row';
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -950,6 +982,8 @@ function miniGridHtml(it) {
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
+        else cls += ' tint-' + TIPO_CLASS[it.tipo];
+        if (eccDay(g)) cls += ' ecc-row';
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
@@ -969,7 +1003,7 @@ function miniGridHtmlFromCamp(camp) {
     let cls = 'mc header';
     if (cy) {
       cls += ' col-' + TIPO_CLASS[cy.tipo];
-      if (cy.conEccezione) cls += ' col-ecc';
+      if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
     }
     html += `<div class="${cls}">${g}</div>`;
   }
@@ -978,10 +1012,13 @@ function miniGridHtmlFromCamp(camp) {
       html += `<div class="mc label">${ramo[0].toUpperCase()}${n}</div>`;
       for (let g = 1; g <= N; g++) {
         const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
+        const cy = cycleMap[g];
         let cls = 'mc';
         let icon = '';
         if (sig === 'ok') { cls += ' ok'; icon = '✓'; }
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
+        else if (cy) cls += ' tint-' + TIPO_CLASS[cy.tipo];
+        if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
