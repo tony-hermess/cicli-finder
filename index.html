@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cicli Finder — Maggioranza</title>
 <!-- gap-gol-over-v1 -->
+<!-- nuovo-ciclo-stesso-tipo-v1 -->
 <style>
 :root {
   --bg: #0f0a1a;
@@ -339,6 +340,23 @@ input:focus, select:focus { border-color: var(--purple); }
 .sig-grid .cell.over-start { margin-top: 10px; }
 .mini-grid .mc.over-start { margin-top: 5px; }
 
+/* nuovo-ciclo-stesso-tipo-v1: stacco + barra bianca quando inizia un nuovo ciclo dello stesso tipo del precedente */
+.sig-grid .cell.new-same, .mini-grid .mc.new-same { position: relative; justify-self: end; overflow: visible; }
+.sig-grid .cell.new-same::before {
+  content: ''; position: absolute; left: -8px; top: -2px; bottom: -2px; width: 4px;
+  background: #ffffff; border-radius: 2px; box-shadow: 0 0 6px #ffffffaa; pointer-events: none;
+}
+.mini-grid .mc.new-same::before {
+  content: ''; position: absolute; left: -5px; top: -1px; bottom: -1px; width: 3px;
+  background: #ffffff; border-radius: 2px; pointer-events: none;
+}
+.sig-grid .cell.header.new-same { flex-direction: column; line-height: 1.05; }
+.sig-grid .cell.header.new-same .nc-tag {
+  font-size: 7px; font-weight: 800; letter-spacing: .2px; text-transform: uppercase;
+  color: #fff; opacity: .95;
+}
+.swatch.newsame { width: 4px; background: #fff; box-shadow: 0 0 4px #fff; }
+
 .section-pad { padding: 0 12px; margin-top: 8px; }
 .help { font-size: 11px; color: var(--text3); margin-top: 4px; }
 .inc-list-item {
@@ -408,6 +426,7 @@ input:focus, select:focus { border-color: var(--purple); }
         <span><i class="swatch" style="background:var(--mist)"></i> Misto</span>
         <span><i class="swatch" style="background:var(--prim)"></i> Prima</span>
         <span><i class="swatch ecc"></i> Eccezione</span>
+        <span><i class="swatch newsame"></i> Nuovo ciclo (stesso tipo)</span>
         <span>✅ ok · ❌ ko</span>
       </div>
       <div class="grid-wrap" id="gridWrap"></div>
@@ -580,7 +599,24 @@ function buildCycleMap(camp) {
       }
     }
   }
+  // nuovo-ciclo-stesso-tipo-v1: segna l'inizio di un ciclo che ha lo stesso tipo del precedente
+  for (let i = 1; i < incs.length; i++) {
+    const prev = incs[i - 1], inc = incs[i];
+    if (prev.tipo === inc.tipo && prev.gStart !== inc.gStart && map[inc.gStart]) {
+      map[inc.gStart].newSame = true;
+    }
+  }
   return map;
+}
+
+/** Template colonne: le giornate che aprono un nuovo ciclo stesso tipo hanno una colonna più larga (stacco) */
+function gridColsTemplate(labelW, cellW, extra, N, cycleMap) {
+  const parts = [labelW + 'px'];
+  for (let g = 1; g <= N; g++) {
+    const cy = cycleMap[g];
+    parts.push((cy && cy.newSame ? cellW + extra : cellW) + 'px');
+  }
+  return parts.join(' ');
 }
 
 /** Extract cicli blocks from a campionato for storico */
@@ -734,7 +770,7 @@ function renderGrid(camp) {
   const cycleMap = buildCycleMap(camp);
   // rows: header + GOL1-6 + OVER1-6 = 1 + 12
   const cols = N + 1; // label + giornate
-  let html = `<div class="sig-grid" style="grid-template-columns: 52px repeat(${N}, 36px);">`;
+  let html = `<div class="sig-grid" style="grid-template-columns: ${gridColsTemplate(52, 36, 10, N, cycleMap)};">`;
 
   // Header
   html += `<div class="cell label corner"></div>`;
@@ -744,8 +780,11 @@ function renderGrid(camp) {
     if (cy) {
       cls += ' col-' + TIPO_CLASS[cy.tipo];
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
+      if (cy.newSame) cls += ' new-same';
     }
-    html += `<div class="${cls}" data-g="${g}" title="G${g}">${g}</div>`;
+    const ncTag = (cy && cy.newSame) ? '<span class="nc-tag">nuovo</span>' : '';
+    const ncTitle = (cy && cy.newSame) ? ' · nuovo ciclo (stesso tipo del precedente)' : '';
+    html += `<div class="${cls}" data-g="${g}" title="G${g}${ncTitle}">${ncTag}${g}</div>`;
   }
 
   // GOL section label row spacer? Just label each row
@@ -762,6 +801,7 @@ function renderGrid(camp) {
         else if (sig === 'ko') cls += ' ko';
         if (cy && !sig) cls += ' tint-' + TIPO_CLASS[cy.tipo];
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
+        if (cy && cy.newSame) cls += ' new-same';
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
         html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
       }
@@ -1003,7 +1043,7 @@ function miniGridHtmlFromCamp(camp) {
   const N = Math.min(camp.giornateMax, 20); // cap display
   const cycleMap = buildCycleMap(camp);
   const sigs = camp.signals || {};
-  let html = `<div class="mini-grid" style="grid-template-columns: 36px repeat(${N}, 22px);">`;
+  let html = `<div class="mini-grid" style="grid-template-columns: ${gridColsTemplate(36, 22, 6, N, cycleMap)};">`;
   html += `<div class="mc label"></div>`;
   for (let g = 1; g <= N; g++) {
     const cy = cycleMap[g];
@@ -1011,6 +1051,7 @@ function miniGridHtmlFromCamp(camp) {
     if (cy) {
       cls += ' col-' + TIPO_CLASS[cy.tipo];
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
+      if (cy.newSame) cls += ' new-same';
     }
     html += `<div class="${cls}">${g}</div>`;
   }
@@ -1027,6 +1068,7 @@ function miniGridHtmlFromCamp(camp) {
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
         else if (cy) cls += ' tint-' + TIPO_CLASS[cy.tipo];
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
+        if (cy && cy.newSame) cls += ' new-same';
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
