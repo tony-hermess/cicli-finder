@@ -1016,15 +1016,7 @@ function renderStorico() {
   // filter chips UI
   { const cur = filters.soloCicli ? 'cicli' : filters.soloFull ? 'full' : 'tutto';
     document.querySelectorAll('#vistaSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === cur)); }
-  document.querySelectorAll('#vistaSeg button').forEach(b => {
-  b.addEventListener('click', () => {
-    const v = b.dataset.v;
-    filters.soloCicli = v === 'cicli'; filters.soloFull = v === 'full';
-    try { localStorage.setItem('cicli-finder-vista', v); } catch(e) {}
-    renderStorico();
-  });
-});
-document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
+  document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
     ch.classList.toggle('on', filters.tipi.has(ch.dataset.f));
   });
   document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
@@ -1587,6 +1579,14 @@ document.getElementById('btnDeleteCamp').addEventListener('click', () => {
   toast('Eliminato');
 });
 
+document.querySelectorAll('#vistaSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    const v = b.dataset.v;
+    filters.soloCicli = v === 'cicli'; filters.soloFull = v === 'full';
+    try { localStorage.setItem('cicli-finder-vista', v); } catch(e) {}
+    renderStorico();
+  });
+});
 document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
   ch.addEventListener('click', () => {
     const t = ch.dataset.f;
