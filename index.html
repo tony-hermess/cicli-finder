@@ -544,8 +544,13 @@ input:focus, select:focus { border-color: var(--purple); }
       <button class="filter-chip" data-f="a3">A 3</button>
       <button class="filter-chip" data-f="a4">A 4</button>
     </div>
+    <!-- filtro-senza-eccezione-v1 -->
+    <div class="vista-seg" id="eccSeg" style="margin-top:8px;">
+      <button data-e="tutte">Tutte</button>
+      <button data-e="con">Solo con eccezione</button>
+      <button data-e="senza">Solo senza eccezione</button>
+    </div>
     <div class="filters" style="margin-top:8px;" id="filtriExtra">
-      <button class="filter-chip" data-f="eccezione">Solo eccezione</button>
       <button class="filter-chip" data-f="streak">Solo streak</button>
     </div>
   </div>
@@ -570,7 +575,8 @@ let state = load();
 let activeCampId = null;
 let currentTab = 'nuovo';
 let incDraft = { tipo: 'confermato', conEccezione: false, matches: [] };
-let filters = { tipi: new Set(), eccezione: false, streak: false, soloCicli: false, soloFull: false };
+let filters = { tipi: new Set(), ecc: 'tutte', streak: false, soloCicli: false, soloFull: false };
+try { const e = localStorage.getItem('cicli-finder-ecc-filter'); if (e === 'con' || e === 'senza') filters.ecc = e; } catch(e) {}
 try { const v = localStorage.getItem('cicli-finder-vista'); if (v === 'cicli') filters.soloCicli = true; else if (v === 'full') filters.soloFull = true; } catch(e) {}
 // edit-storico-v1: voce dello storico riaperta nell'editor (non è un campionato nuovo)
 let editingStoricoId = null;
@@ -1005,23 +1011,33 @@ function renderStorico() {
     if (filters.soloCicli && it.kind === 'campionato') return false;
     if (filters.soloFull && it.kind !== 'campionato') return false;
     if (it.kind === 'campionato') {
-      // full campionato: show if any ciclo matches, or if no tipo filters
-      if (tipiOn.size === 0 && !filters.eccezione && !filters.streak) return true;
       const cicli = it.cicli || [];
-      return cicli.some(c => matchCicloFilter(c));
+      const hasEcc = cicli.some(c => c.conEccezione) || ((it.snapshot && it.snapshot.incroci) || []).some(i => i.conEccezione);
+      if (filters.ecc === 'con' && !hasEcc) return false;
+      if (filters.ecc === 'senza' && hasEcc) return false;
+      if (tipiOn.size === 0 && !filters.streak) return true;
+      return cicli.some(c => matchCicloFilter(c, true));
     }
     return matchCicloFilter(it);
   });
 
   // filter chips UI
   { const cur = filters.soloCicli ? 'cicli' : filters.soloFull ? 'full' : 'tutto';
-    document.querySelectorAll('#vistaSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === cur)); }
-  document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
+    document.querySelectorAll('#vistaSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === cur));
+    document.querySelectorAll('#eccSeg button').forEach(b => b.classList.toggle('on', b.dataset.e === filters.ecc)); }
+  document.querySelectorAll('#eccSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    filters.ecc = b.dataset.e;
+    try { localStorage.setItem('cicli-finder-ecc-filter', filters.ecc); } catch(e) {}
+    renderStorico();
+  });
+});
+document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
     ch.classList.toggle('on', filters.tipi.has(ch.dataset.f));
   });
   document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
     const f = ch.dataset.f;
-    ch.classList.toggle('on', !!filters[f] || (f === 'eccezione' && filters.eccezione) || (f === 'streak' && filters.streak) || (f === 'soloCicli' && filters.soloCicli) || (f === 'soloFull' && filters.soloFull));
+    ch.classList.toggle('on', !!filters[f] || (f === 'streak' && filters.streak) || (f === 'soloCicli' && filters.soloCicli) || (f === 'soloFull' && filters.soloFull));
   });
 
   if (!items.length) {
@@ -1046,9 +1062,10 @@ function renderStorico() {
   });
 }
 
-function matchCicloFilter(c) {
+function matchCicloFilter(c, skipEcc) {
   if (filters.tipi.size && !filters.tipi.has(c.tipo)) return false;
-  if (filters.eccezione && !c.conEccezione) return false;
+  if (!skipEcc && filters.ecc === 'con' && !c.conEccezione) return false;
+  if (!skipEcc && filters.ecc === 'senza' && c.conEccezione) return false;
   if (filters.streak && !c.hasStreak) return false;
   return true;
 }
@@ -1598,8 +1615,7 @@ document.querySelectorAll('#filtriTipo .filter-chip').forEach(ch => {
 document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
   ch.addEventListener('click', () => {
     const f = ch.dataset.f;
-    if (f === 'eccezione') filters.eccezione = !filters.eccezione;
-    else if (f === 'streak') filters.streak = !filters.streak;
+    if (f === 'streak') filters.streak = !filters.streak;
     else if (f === 'soloCicli') { filters.soloCicli = !filters.soloCicli; if (filters.soloCicli) filters.soloFull = false; }
     else if (f === 'soloFull') { filters.soloFull = !filters.soloFull; if (filters.soloFull) filters.soloCicli = false; }
     renderStorico();
