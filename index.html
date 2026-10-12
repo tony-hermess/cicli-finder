@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- eccezione-giornata-prima-v1 -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
@@ -387,6 +388,12 @@ input:focus, select:focus { border-color: var(--purple); }
   margin-bottom: 6px; border: 1px solid var(--border); font-size: 12px;
 }
 .inc-list-item .acts { margin-left: auto; display: flex; gap: 4px; }
+
+/* eccezione-giornata-prima-v1 */
+.mini-grid .mc.prev-col { opacity:.85; outline:1px dashed var(--ecc); outline-offset:-2px; }
+.mini-grid .mc.header.prev-col { color: var(--ecc); font-size:8px; }
+.mini-grid .mc.prev-hit, .sig-grid .cell.prev-hit { box-shadow: inset 0 0 0 3px var(--ecc) !important; background:#f5c54240 !important; }
+.sig-grid .cell.prev-ecc, .mini-grid .mc.prev-ecc { outline:2px dashed var(--ecc); outline-offset:-3px; }
 </style>
 </head>
 <body>
@@ -846,10 +853,30 @@ function renderNuovo() {
   renderIncPanel(camp);
 }
 
+// eccezione-giornata-prima-v1
+function eccPrevInfo(camp) {
+  // map g-1 -> Set of "ramo:n" involved matches, for incroci con eccezione
+  const out = {};
+  for (const inc of (camp && camp.incroci) || []) {
+    if (!inc.conEccezione) continue;
+    const pg = inc.gStart - 1;
+    if (pg < 1) continue;
+    if (!out[pg]) out[pg] = new Set();
+    for (const m of inc.matches || []) out[pg].add(m.ramo + ':' + m.n);
+  }
+  return out;
+}
+function findCampForCiclo(it) {
+  const par = (state.storico || []).find(x => x.kind === 'campionato' && x.snapshot && x.snapshot.id === it.campionatoId);
+  if (par) return par.snapshot;
+  return (state.campionati || []).find(c => c.id === it.campionatoId) || null;
+}
+
 function renderGrid(camp) {
   const wrap = document.getElementById('gridWrap');
   const N = camp.giornateMax;
   const cycleMap = buildCycleMap(camp);
+  const prevEcc = eccPrevInfo(camp);
   // rows: header + GOL1-6 + OVER1-6 = 1 + 12
   const cols = N + 1; // label + giornate
   let html = `<div class="sig-grid" style="grid-template-columns: ${gridColsTemplate(52, 36, 10, N, cycleMap)};">`;
@@ -864,6 +891,7 @@ function renderGrid(camp) {
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
       if (cy.newSame) cls += ' new-same';
     }
+    if (prevEcc[g]) cls += ' prev-ecc';
     const ncTag = (cy && cy.newSame) ? '<span class="nc-tag">nuovo</span>' : '';
     const ncTitle = (cy && cy.newSame) ? ' · nuovo ciclo (stesso tipo del precedente)' : '';
     html += `<div class="${cls}" data-g="${g}" title="G${g}${ncTitle}">${ncTag}${g}</div>`;
@@ -884,6 +912,7 @@ function renderGrid(camp) {
         if (cy && !sig) cls += ' tint-' + tipoClass(cy.tipo);
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
+        if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
         html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
       }
@@ -1108,9 +1137,19 @@ function miniGridHtml(it) {
   const gStart = it.gStart, gEnd = it.gEnd;
   const N = gEnd - gStart + 1;
   const sigs = it.signals || {};
-  let html = `<div class="mini-grid" style="grid-template-columns: 36px repeat(${N}, 22px);">`;
-  html += `<div class="mc label"></div>`;
   const incSnap = it.snapshotIncrocio;
+  // G-1 column for eccezione
+  let prevG = 0, prevSigs = null, prevSet = new Set();
+  if (it.conEccezione && gStart > 1) {
+    prevG = gStart - 1;
+    const src = findCampForCiclo(it);
+    prevSigs = (src && src.signals && src.signals[prevG]) || (it.prevSignals) || {};
+    const ms = (incSnap && incSnap.matches) || it.matches || [];
+    for (const m of ms) prevSet.add(m.ramo + ':' + m.n);
+  }
+  let html = `<div class="mini-grid" style="grid-template-columns: 36px ${prevG ? '24px ' : ''}repeat(${N}, 22px);">`;
+  html += `<div class="mc label"></div>`;
+  if (prevG) html += `<div class="mc header prev-col" title="Giornata prima dell'incrocio">G-1<br>${prevG}</div>`;
   const eccDay = (g) => {
     if (!it.conEccezione) return false;
     if (incSnap && incSnap.gStart) {
@@ -1128,6 +1167,13 @@ function miniGridHtml(it) {
     for (let n = 1; n <= 6; n++) {
       const os = (ramo === 'over' && n === 1) ? ' over-start' : '';
       html += `<div class="mc label${os}">${ramo[0].toUpperCase()}${n}</div>`;
+      if (prevG) {
+        const ps = prevSigs[ramo] && prevSigs[ramo][n];
+        let pc = 'mc prev-col' + os;
+        if (ps === 'ok') pc += ' ok'; else if (ps === 'ko') pc += ' ko';
+        if (ps && prevSet.has(ramo + ':' + n)) pc += ' prev-hit';
+        html += `<div class="${pc}">${ps === 'ok' ? '✓' : ps === 'ko' ? '✗' : ''}</div>`;
+      }
       for (let g = gStart; g <= gEnd; g++) {
         const sig = sigs[g] && sigs[g][ramo] && sigs[g][ramo][n];
         let cls = 'mc' + os;
@@ -1149,6 +1195,7 @@ function miniGridHtmlFromCamp(camp) {
   const cycleMap = buildCycleMap(camp);
   const sigs = camp.signals || {};
   let html = `<div class="mini-grid" style="grid-template-columns: ${gridColsTemplate(36, 22, 6, N, cycleMap)};">`;
+  const prevEcc = eccPrevInfo(camp);
   html += `<div class="mc label"></div>`;
   for (let g = 1; g <= N; g++) {
     const cy = cycleMap[g];
@@ -1158,6 +1205,7 @@ function miniGridHtmlFromCamp(camp) {
       if (cy.conEccezione && cy.painted) cls += ' col-ecc ecc-row';
       if (cy.newSame) cls += ' new-same';
     }
+    if (prevEcc[g]) cls += ' prev-ecc';
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -1174,6 +1222,7 @@ function miniGridHtmlFromCamp(camp) {
         else if (cy) cls += ' tint-' + tipoClass(cy.tipo);
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
+        if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
