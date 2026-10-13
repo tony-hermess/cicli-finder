@@ -654,6 +654,7 @@ input:focus, select:focus { border-color: var(--purple); }
 
 <div class="toast" id="toast"></div>
 
+<!-- streak-abbinate-cicli-v1 -->
 <script>
 (function () {
 'use strict';
@@ -735,9 +736,30 @@ function streaksOverlap(camp, a, b) {
 }
 function itemStreaks(it) {
   if (it.kind === 'campionato') return normStreaks(it.snapshot && it.snapshot.streaks);
-  if (Array.isArray(it.streaks)) return normStreaks(it.streaks);
+  // <!-- streak-abbinate-cicli-v1 --> dynamic match from parent campionato
   const camp = findCampForCiclo(it);
-  return camp ? streaksOverlap(camp, parseInt(it.gStart,10), parseInt(it.gEnd || it.gStart,10)) : [];
+  if (camp && Array.isArray(camp.streaks)) return streaksForCiclo(camp, it);
+  if (Array.isArray(it.streaks)) return normStreaks(it.streaks);
+  return [];
+}
+function cicloRangesOf(camp, it) {
+  const seen = new Set(), out = [];
+  const add = (a, b) => { a = parseInt(a,10); b = parseInt(b || a,10); if (!a) return; const k = a + '-' + b; if (!seen.has(k)) { seen.add(k); out.push({ a, b }); } };
+  (state.storico || []).forEach(x => { if (x.kind === 'ciclo' && x.campionatoId === camp.id) add(x.gStart, x.gEnd); });
+  const par = (state.storico || []).find(x => x.kind === 'campionato' && x.snapshot && x.snapshot.id === camp.id);
+  if (par) (par.cicli || []).forEach(c => add(c.gStart, c.gEnd));
+  if (it) add(it.gStart, it.gEnd);
+  return out.sort((p, q) => p.a - q.a);
+}
+function streakOwner(x, ranges) {
+  const inR = g => ranges.find(r => g >= r.a && g <= r.b);
+  if (x.attached) return ranges.find(r => r.a === x.gFrom) || inR(x.gFrom - 1) || inR(x.gFrom) || ranges.find(r => x.gTo >= r.a && x.gFrom <= r.b) || null;
+  return inR(x.gFrom) || ranges.find(r => x.gTo >= r.a && x.gFrom <= r.b) || null;
+}
+function streaksForCiclo(camp, it) {
+  const a = parseInt(it.gStart,10), b = parseInt(it.gEnd || it.gStart,10);
+  const ranges = cicloRangesOf(camp, it);
+  return normStreaks(camp.streaks).filter(x => { const o = streakOwner(x, ranges); return o && o.a === a && o.b === b; });
 }
 function matchStreakFilter(it) {
   const f = filters.streakMan; if (f === 'tutte') return true;
