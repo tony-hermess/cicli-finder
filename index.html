@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- incroci-consecutivi-v1 -->
 <!-- eccezione-giornata-prima-v1 -->
 <html lang="it">
 <head>
@@ -394,6 +395,13 @@ input:focus, select:focus { border-color: var(--purple); }
 .mini-grid .mc.header.prev-col { color: var(--ecc); font-size:8px; }
 .mini-grid .mc.prev-hit, .sig-grid .cell.prev-hit { box-shadow: inset 0 0 0 3px var(--ecc) !important; background:#f5c54240 !important; }
 .sig-grid .cell.prev-ecc, .mini-grid .mc.prev-ecc { outline:2px dashed var(--ecc); outline-offset:-3px; }
+
+/* incroci-consecutivi-v1 */
+.sig-grid .cell.header.consec, .mini-grid .mc.header.consec { position: relative; border-bottom: 5px double #ffffff !important; }
+.sig-grid .cell.header.consec::after { content:'⛓'; position:absolute; top:-2px; right:0; font-size:9px; line-height:1; }
+.sig-grid .cell.consec-day:not(.header), .mini-grid .mc.consec-day:not(.header) { background-image: repeating-linear-gradient(135deg, transparent 0 5px, #ffffff1f 5px 7px); }
+.swatch.consec { background: transparent; border-bottom: 5px double #fff; height: 10px; }
+.badge-consec { display:inline-block; font-size:11px; font-weight:800; padding:2px 7px; border-radius:6px; background:#ffffff1a; color:#fff; border:2px double #fff; }
 </style>
 </head>
 <body>
@@ -467,6 +475,7 @@ input:focus, select:focus { border-color: var(--purple); }
         <span><i class="swatch" style="background:var(--a4)"></i> Incrocio a 4</span>
         <span><i class="swatch ecc"></i> Eccezione</span>
         <span><i class="swatch newsame"></i> Nuovo ciclo (stesso tipo)</span>
+        <span><i class="swatch consec"></i> ⛓ Incroci consecutivi</span>
         <span>✅ ok · ❌ ko</span>
       </div>
       <div class="grid-wrap" id="gridWrap"></div>
@@ -557,6 +566,11 @@ input:focus, select:focus { border-color: var(--purple); }
       <button data-e="con">Solo con eccezione</button>
       <button data-e="senza">Solo senza eccezione</button>
     </div>
+    <div class="vista-seg" id="consecSeg" style="margin-top:8px;">
+      <button data-c="tutti">Tutti</button>
+      <button data-c="con">Solo con incroci consecutivi</button>
+      <button data-c="senza">Solo senza incroci consecutivi</button>
+    </div>
     <div class="filters" style="margin-top:8px;" id="filtriExtra">
       <button class="filter-chip" data-f="streak">Solo streak</button>
     </div>
@@ -586,6 +600,28 @@ let filters = { tipi: new Set(), ecc: 'tutte', streak: false, soloCicli: false, 
 try { const e = localStorage.getItem('cicli-finder-ecc-filter'); if (e === 'con' || e === 'senza') filters.ecc = e; } catch(e) {}
 try { const v = localStorage.getItem('cicli-finder-vista'); if (v === 'cicli') filters.soloCicli = true; else if (v === 'full') filters.soloFull = true; } catch(e) {}
 // edit-storico-v1: voce dello storico riaperta nell'editor (non è un campionato nuovo)
+// incroci-consecutivi-v1
+filters.consec = 'tutti';
+try { const k = localStorage.getItem('cicli-finder-consec-filter'); if (k === 'con' || k === 'senza') filters.consec = k; } catch(e) {}
+/** Giornate in una serie di incroci consecutivi: incrocio che inizia il giorno dopo la fine del precedente (2+ di seguito) */
+function consecDays(camp) {
+  const out = new Set();
+  const incs = ((camp && camp.incroci) || []).slice().sort((a, b) => a.gStart - b.gStart);
+  for (let i = 1; i < incs.length; i++) {
+    const p = incs[i - 1], c = incs[i];
+    if (c.gStart === (p.gEnd || p.gStart) + 1) {
+      for (const x of [p, c]) for (let g = x.gStart; g <= (x.gEnd || x.gStart); g++) out.add(g);
+    }
+  }
+  return out;
+}
+function itemHasConsec(it) {
+  if (it.kind === 'campionato') return consecDays(it.snapshot).size > 0;
+  const camp = findCampForCiclo(it); if (!camp) return false;
+  const d = consecDays(camp);
+  for (let g = it.gStart; g <= it.gEnd; g++) if (d.has(g)) return true;
+  return false;
+}
 let editingStoricoId = null;
 let editingCamp = null;
 
@@ -877,6 +913,7 @@ function renderGrid(camp) {
   const N = camp.giornateMax;
   const cycleMap = buildCycleMap(camp);
   const prevEcc = eccPrevInfo(camp);
+  const cdays = consecDays(camp);
   // rows: header + GOL1-6 + OVER1-6 = 1 + 12
   const cols = N + 1; // label + giornate
   let html = `<div class="sig-grid" style="grid-template-columns: ${gridColsTemplate(52, 36, 10, N, cycleMap)};">`;
@@ -892,9 +929,10 @@ function renderGrid(camp) {
       if (cy.newSame) cls += ' new-same';
     }
     if (prevEcc[g]) cls += ' prev-ecc';
+    if (cdays.has(g)) cls += ' consec consec-day';
     const ncTag = (cy && cy.newSame) ? '<span class="nc-tag">nuovo</span>' : '';
     const ncTitle = (cy && cy.newSame) ? ' · nuovo ciclo (stesso tipo del precedente)' : '';
-    html += `<div class="${cls}" data-g="${g}" title="G${g}${ncTitle}">${ncTag}${g}</div>`;
+    html += `<div class="${cls}" data-g="${g}" title="G${g}${ncTitle}${cdays.has(g) ? ' · incroci consecutivi' : ''}">${ncTag}${g}</div>`;
   }
 
   // GOL section label row spacer? Just label each row
@@ -913,6 +951,7 @@ function renderGrid(camp) {
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
         if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
+        if (cdays.has(g)) cls += ' consec-day';
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
         html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
       }
@@ -1037,6 +1076,8 @@ function renderStorico() {
   // Apply filters
   const tipiOn = filters.tipi;
   items = items.filter(it => {
+    if (filters.consec === 'con' && !itemHasConsec(it)) return false;
+    if (filters.consec === 'senza' && itemHasConsec(it)) return false;
     if (filters.soloCicli && it.kind === 'campionato') return false;
     if (filters.soloFull && it.kind !== 'campionato') return false;
     if (it.kind === 'campionato') {
@@ -1053,7 +1094,8 @@ function renderStorico() {
   // filter chips UI
   { const cur = filters.soloCicli ? 'cicli' : filters.soloFull ? 'full' : 'tutto';
     document.querySelectorAll('#vistaSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === cur));
-    document.querySelectorAll('#eccSeg button').forEach(b => b.classList.toggle('on', b.dataset.e === filters.ecc)); }
+    document.querySelectorAll('#eccSeg button').forEach(b => b.classList.toggle('on', b.dataset.e === filters.ecc));
+    document.querySelectorAll('#consecSeg button').forEach(b => b.classList.toggle('on', b.dataset.c === filters.consec)); }
   document.querySelectorAll('#eccSeg button').forEach(b => {
   b.addEventListener('click', () => {
     filters.ecc = b.dataset.e;
@@ -1106,6 +1148,7 @@ function renderCicloCard(it) {
       <span class="badge-tipo ${tipoClass(it.tipo)}">${tipoLabel(it.tipo)}</span>
       ${it.conEccezione ? '<span class="badge-ecc">ECCEZIONE</span>' : ''}
       ${it.diFila ? '<span class="badge-fila">DI FILA ×' + it.mergedFrom + '</span>' : ''}
+      ${itemHasConsec(it) ? '<span class="badge-consec">⛓ INCROCI CONSECUTIVI</span>' : ''}
       ${it.hasStreak ? '<span class="badge-fila" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK</span>' : ''}
     </div>
     <div class="meta-line"><strong>${esc(it.campionatoName)}</strong> · ${esc(it.campionatoDate)} · ${range}</div>
@@ -1123,6 +1166,7 @@ function renderFullCard(it) {
     <div class="label-row">
       <span class="badge-full">CAMPIONATO</span>
       <span style="font-weight:700;">${esc(camp.name)}</span>
+      ${itemHasConsec(it) ? '<span class="badge-consec">⛓ INCROCI CONSECUTIVI</span>' : ''}
     </div>
     <div class="meta-line">${esc(camp.date)} · ${camp.giornateMax} giornate · ${(camp.incroci||[]).length} incroci · ${(it.cicli||[]).length} cicli</div>
     <div class="mini-grid-wrap">${miniGridHtmlFromCamp(camp)}</div>
@@ -1147,6 +1191,7 @@ function miniGridHtml(it) {
     const ms = (incSnap && incSnap.matches) || it.matches || [];
     for (const m of ms) prevSet.add(m.ramo + ':' + m.n);
   }
+  const cdaysC = consecDays(findCampForCiclo(it));
   let html = `<div class="mini-grid" style="grid-template-columns: 36px ${prevG ? '24px ' : ''}repeat(${N}, 22px);">`;
   html += `<div class="mc label"></div>`;
   if (prevG) html += `<div class="mc header prev-col" title="Giornata prima dell'incrocio">G-1<br>${prevG}</div>`;
@@ -1161,6 +1206,7 @@ function miniGridHtml(it) {
   for (let g = gStart; g <= gEnd; g++) {
     let cls = 'mc header col-' + tipoClass(it.tipo);
     if (eccDay(g)) cls += ' col-ecc ecc-row';
+    if (cdaysC.has(g)) cls += ' consec consec-day';
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -1182,6 +1228,7 @@ function miniGridHtml(it) {
         else if (sig === 'ko') { cls += ' ko'; icon = '✗'; }
         else cls += ' tint-' + tipoClass(it.tipo);
         if (eccDay(g)) cls += ' ecc-row';
+        if (cdaysC.has(g)) cls += ' consec-day';
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
@@ -1196,6 +1243,7 @@ function miniGridHtmlFromCamp(camp) {
   const sigs = camp.signals || {};
   let html = `<div class="mini-grid" style="grid-template-columns: ${gridColsTemplate(36, 22, 6, N, cycleMap)};">`;
   const prevEcc = eccPrevInfo(camp);
+  const cdays = consecDays(camp);
   html += `<div class="mc label"></div>`;
   for (let g = 1; g <= N; g++) {
     const cy = cycleMap[g];
@@ -1206,6 +1254,7 @@ function miniGridHtmlFromCamp(camp) {
       if (cy.newSame) cls += ' new-same';
     }
     if (prevEcc[g]) cls += ' prev-ecc';
+    if (cdays.has(g)) cls += ' consec consec-day';
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -1223,6 +1272,7 @@ function miniGridHtmlFromCamp(camp) {
         if (cy && cy.conEccezione && cy.painted) cls += ' ecc-row';
         if (cy && cy.newSame) cls += ' new-same';
         if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
+        if (cdays.has(g)) cls += ' consec-day';
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
@@ -1671,6 +1721,13 @@ document.querySelectorAll('#filtriExtra .filter-chip').forEach(ch => {
   });
 });
 
+document.querySelectorAll('#consecSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    filters.consec = b.dataset.c;
+    try { localStorage.setItem('cicli-finder-consec-filter', filters.consec); } catch(e) {}
+    renderStorico();
+  });
+});
 // Expose for smoke tests
 window.__CF = {
   getState: () => state,
@@ -1682,6 +1739,8 @@ window.__CF = {
   archiveCampionato,
   extractCicli,
   buildCycleMap,
+  consecDays,
+  itemHasConsec,
   render,
   save,
   openStoricoEdit,
