@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!-- incroci-consecutivi-v1 -->
+<!-- consec-manuale-v1 -->
 <!-- eccezione-giornata-prima-v1 -->
 <html lang="it">
 <head>
@@ -509,6 +510,13 @@ input:focus, select:focus { border-color: var(--purple); }
         </div>
         <div class="toggle" id="togEccezione" role="switch" aria-checked="false"></div>
       </div>
+      <div class="toggle-row">
+        <div>
+          <div style="font-weight:600;font-size:13px;">⛓ Incrocio consecutivo (manuale)</div>
+          <div class="help">Segnalo a mano se non viene trovato da solo</div>
+        </div>
+        <div class="toggle" id="togConsec" role="switch" aria-checked="false"></div>
+      </div>
       <div class="form-row">
         <label>Partite coinvolte — GOL</label>
         <div class="chip-row" id="golChips"></div>
@@ -595,7 +603,7 @@ function tipoLabel(t) { return TIPO_LABEL[t] || t || '—'; }
 let state = load();
 let activeCampId = null;
 let currentTab = 'nuovo';
-let incDraft = { tipo: 'confermato', conEccezione: false, matches: [] };
+let incDraft = { tipo: 'confermato', conEccezione: false, consecManual: false, matches: [] };
 let filters = { tipi: new Set(), ecc: 'tutte', streak: false, soloCicli: false, soloFull: false };
 try { const e = localStorage.getItem('cicli-finder-ecc-filter'); if (e === 'con' || e === 'senza') filters.ecc = e; } catch(e) {}
 try { const v = localStorage.getItem('cicli-finder-vista'); if (v === 'cicli') filters.soloCicli = true; else if (v === 'full') filters.soloFull = true; } catch(e) {}
@@ -606,20 +614,30 @@ try { const k = localStorage.getItem('cicli-finder-consec-filter'); if (k === 'c
 /** Giornate in una serie di incroci consecutivi: incrocio che inizia il giorno dopo la fine del precedente (2+ di seguito) */
 function consecDays(camp) {
   const out = new Set();
-  const incs = ((camp && camp.incroci) || []).slice().sort((a, b) => a.gStart - b.gStart);
-  for (let i = 1; i < incs.length; i++) {
-    const p = incs[i - 1], c = incs[i];
-    if (c.gStart === (p.gEnd || p.gStart) + 1) {
-      for (const x of [p, c]) for (let g = x.gStart; g <= (x.gEnd || x.gStart); g++) out.add(g);
-    }
+  const num = v => { const n = parseInt(v, 10); return isNaN(n) ? null : n; };
+  const incs = ((camp && camp.incroci) || []).map(i => {
+    const a = num(i.gStart); if (a == null) return null;
+    let b = num(i.gEnd); if (b == null || b < a) b = a;
+    return { a, b, man: !!i.consecManual };
+  }).filter(Boolean).sort((x, y) => x.a - y.a || x.b - y.b);
+  const addR = x => { for (let g = x.a; g <= x.b; g++) out.add(g); };
+  for (let i = 0; i < incs.length; i++) {
+    const c = incs[i];
+    if (c.man) addR(c);
+    if (i === 0) continue;
+    const p = incs[i - 1];
+    // auto: inizia il giorno dopo la fine o dopo l'inizio del precedente, o dentro/adiacente al suo range
+    if (c.a >= p.a + 1 && c.a <= Math.max(p.b, p.a) + 1) { addR(p); addR(c); }
   }
   return out;
 }
 function itemHasConsec(it) {
+  if (it.consecManual) return true;
   if (it.kind === 'campionato') return consecDays(it.snapshot).size > 0;
-  const camp = findCampForCiclo(it); if (!camp) return false;
+  const camp = findCampForCiclo(it);
+  if (!camp) return !!(it.snapshotIncrocio && it.snapshotIncrocio.consecManual);
   const d = consecDays(camp);
-  for (let g = it.gStart; g <= it.gEnd; g++) if (d.has(g)) return true;
+  for (let g = parseInt(it.gStart, 10); g <= parseInt(it.gEnd || it.gStart, 10); g++) if (d.has(g)) return true;
   return false;
 }
 let editingStoricoId = null;
@@ -992,6 +1010,8 @@ function renderIncPanel(camp) {
   });
   document.getElementById('togEccezione').classList.toggle('on', !!incDraft.conEccezione);
   document.getElementById('togEccezione').setAttribute('aria-checked', !!incDraft.conEccezione);
+  document.getElementById('togConsec').classList.toggle('on', !!incDraft.consecManual);
+  document.getElementById('togConsec').setAttribute('aria-checked', !!incDraft.consecManual);
 
   // match chips
   const golEl = document.getElementById('golChips');
@@ -1015,6 +1035,7 @@ function renderIncPanel(camp) {
       return `<div class="inc-list-item" data-id="${inc.id}">
         <span class="badge-tipo ${tipoClass(inc.tipo)}">${tipoLabel(inc.tipo)}</span>
         ${inc.conEccezione ? '<span class="badge-ecc">ECC</span>' : ''}
+        ${inc.consecManual ? '<span class="badge-consec">⛓ M</span>' : ''}
         <span><strong>${range}</strong> ${esc(mats)}</span>
         <div class="acts">
           <button class="btn btn-ghost btn-sm btn-edit-inc" data-id="${inc.id}">Mod</button>
@@ -1037,6 +1058,7 @@ function renderIncPanel(camp) {
         incDraft = {
           tipo: inc.tipo,
           conEccezione: !!inc.conEccezione,
+          consecManual: !!inc.consecManual,
           matches: (inc.matches || []).map(m => ({ ...m })),
           editId: inc.id
         };
@@ -1318,6 +1340,7 @@ function applyIncrocio() {
     gStart, gEnd,
     tipo: incDraft.tipo,
     conEccezione: !!incDraft.conEccezione,
+    consecManual: !!incDraft.consecManual,
     matches: incDraft.matches.map(m => ({ ramo: m.ramo, n: m.n }))
   };
 
@@ -1337,7 +1360,7 @@ function applyIncrocio() {
 }
 
 function resetIncDraft() {
-  incDraft = { tipo: 'confermato', conEccezione: false, matches: [] };
+  incDraft = { tipo: 'confermato', conEccezione: false, consecManual: false, matches: [] };
   document.getElementById('incGStart').value = '';
   document.getElementById('incGEnd').value = '';
 }
@@ -1396,6 +1419,7 @@ function cicloToCamp(entry) {
       gEnd: base.gEnd && base.gEnd !== entry.gStart ? base.gEnd : entry.gStart,
       tipo: entry.tipo,
       conEccezione: !!entry.conEccezione,
+      consecManual: !!(entry.consecManual || base.consecManual),
       matches: (entry.matches || []).map(m => ({ ramo: m.ramo, n: m.n }))
     }];
   }
@@ -1443,6 +1467,7 @@ function exitStoricoEdit() {
 function applyCicloOntoEntry(entry, c, camp) {
   entry.tipo = c.tipo;
   entry.conEccezione = !!c.conEccezione;
+  entry.consecManual = !!(c.snapshotIncrocio && c.snapshotIncrocio.consecManual);
   entry.gStart = c.gStart;
   entry.gEnd = c.gEnd;
   entry.matches = (c.matches || []).map(m => ({ ramo: m.ramo, n: m.n }));
@@ -1539,6 +1564,7 @@ function commitStoricoEdit() {
     const gEnd = Math.max(camp.giornateMax || gStart, inc.gEnd || inc.gStart);
     live.tipo = inc.tipo;
     live.conEccezione = !!inc.conEccezione;
+    live.consecManual = !!inc.consecManual;
     live.gStart = gStart;
     live.gEnd = gEnd;
     live.matches = (inc.matches || []).map(m => ({ ramo: m.ramo, n: m.n }));
@@ -1645,6 +1671,12 @@ document.querySelectorAll('#tipoChips .chip').forEach(ch => {
 
 document.getElementById('togEccezione').addEventListener('click', () => {
   incDraft.conEccezione = !incDraft.conEccezione;
+  const camp = getActiveCamp();
+  if (camp) renderIncPanel(camp);
+});
+
+document.getElementById('togConsec').addEventListener('click', () => {
+  incDraft.consecManual = !incDraft.consecManual;
   const camp = getActiveCamp();
   if (camp) renderIncPanel(camp);
 });
