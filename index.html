@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ripetizioni-evidenzia-filtri-v1 -->
 <!-- streak-manuale-v1 -->
 <!-- streak-stessa-partita-v1 -->
 <!-- streak-partita-per-giornata-v1 -->
@@ -425,6 +426,25 @@ input:focus, select:focus { border-color: var(--purple); }
 .stk-day .stk-pc { padding:4px 7px; font-size:12px; border-radius:6px; border:1px solid #ffffff33; background:#ffffff10; color:inherit; min-width:30px; }
 .stk-day .stk-pc.on { background:#c6ff00; color:#000; border-color:#c6ff00; font-weight:800; }
 .stk-day .stk-sep { width:6px; }
+/* ripetizioni-evidenzia-filtri-v1 */
+.sig-grid .cell.rip-row { min-height:14px; height:14px; padding:0; font-size:8px; font-weight:800; background:transparent; border:none; }
+.sig-grid .cell.rip-row.rip-on { border-top:3px dotted #b388ff; border-bottom:3px dotted #b388ff; background:#b388ff26; color:#e2d4ff; }
+.sig-grid .cell.rip-row.rip-a { border-left:3px dotted #b388ff; }
+.sig-grid .cell.rip-row.rip-z { border-right:3px dotted #b388ff; }
+.sig-grid .cell.rip-hit, .mini-grid .mc.rip-hit { border-bottom:3px dotted #b388ff !important; }
+.mini-grid .mc.stk-hit-att { box-shadow: inset 0 -3px 0 #c6ff00; }
+.mini-grid .mc.header.stk-day { border-top:3px solid #c6ff00; }
+.mini-grid .mc.header.rip-day { border-top:3px dotted #b388ff; }
+.swatch.rip { background:transparent; border-top:3px dotted #b388ff; border-bottom:3px dotted #b388ff; height:4px; }
+.badge-rip { display:inline-block; font-size:11px; font-weight:800; padding:2px 7px; border-radius:6px; background:#b388ff22; color:#e2d4ff; border:2px dotted #b388ff; }
+.rip-day .stk-dlab { color:#b388ff; }
+.rip-day .stk-pc.on { background:#b388ff; border-color:#b388ff; color:#000; }
+@keyframes hlPulse { 0%,100% { filter:brightness(1); outline-color:#ffffff; } 50% { filter:brightness(1.45); outline-color:#ffe066; } }
+.storico-card.hl .label-row > span:not(.hl-on) { opacity:.45; }
+.storico-card.hl .mini-grid .mc:not(.label):not(.hl-on) { opacity:.35; }
+.storico-card .hl-on { outline:2px solid #fff; outline-offset:-1px; animation:hlPulse 1.4s ease-in-out infinite; position:relative; z-index:1; }
+.storico-card .label-row > span.hl-on { outline-offset:1px; box-shadow:0 0 10px 2px #ffffff66; }
+.hl-note { font-size:11px; color:#ffe066; margin:2px 0 6px; }
 </style>
 </head>
 <body>
@@ -499,8 +519,8 @@ input:focus, select:focus { border-color: var(--purple); }
         <span><i class="swatch ecc"></i> Eccezione</span>
         <span><i class="swatch newsame"></i> Nuovo ciclo (stesso tipo)</span>
         <span><i class="swatch consec"></i> ⛓ Incroci consecutivi</span>
-        <span><i class="swatch stk-att"></i> Streak attaccata</span>
-        <span><i class="swatch stk-non"></i> Streak non attaccata</span>
+        <span><i class="swatch stk-att"></i> Streak (attaccata all'incrocio)</span>
+        <span><i class="swatch rip"></i> Ripetizione (stessa partita 2+ giornate)</span>
         <span>✅ ok · ❌ ko</span>
       </div>
       <div class="grid-wrap" id="gridWrap"></div>
@@ -565,13 +585,7 @@ input:focus, select:focus { border-color: var(--purple); }
           <input type="number" id="stkTo" placeholder="A" min="1">
         </div>
       </div>
-      <div class="form-row">
-        <label>Tipo</label>
-        <div class="chip-row" id="stkTipoChips">
-          <button class="chip" data-att="1">Attaccata all'incrocio</button>
-          <button class="chip" data-att="0">Non attaccata</button>
-        </div>
-      </div>
+      <div class="help" style="margin-bottom:6px;">La streak parte sempre attaccata all'incrocio. Per la stessa partita ripetuta più giornate usa “Aggiungi ripetizione”.</div>
       <div class="form-row" id="stkSameRow">
         <label>Partita di partenza</label>
         <div class="chip-row" id="stkSameChips">
@@ -588,6 +602,27 @@ input:focus, select:focus { border-color: var(--purple); }
         <button class="btn btn-primary" id="btnStkAdd">Aggiungi streak</button>
       </div>
       <div id="stkList" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card stk-form" id="ripCard">
+      <div class="card-title" style="color:#b388ff;">Aggiungi ripetizione</div>
+      <div class="help" style="margin-bottom:6px;">Stessa partita ripetuta 2 o più giornate di fila.</div>
+      <div class="form-row">
+        <label>Da giornata a giornata (almeno 2)</label>
+        <div class="form-inline">
+          <input type="number" id="ripFrom" placeholder="Da" min="1">
+          <input type="number" id="ripTo" placeholder="A" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Partita</label>
+        <div id="ripPartita"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btnRipCancel">Annulla</button>
+        <button class="btn btn-primary" id="btnRipAdd">Aggiungi ripetizione</button>
+      </div>
+      <div id="ripList" style="margin-top:10px;"></div>
     </div>
 
     <div class="card">
@@ -642,11 +677,15 @@ input:focus, select:focus { border-color: var(--purple); }
     </div>
     <div class="vista-seg" id="streakSeg" style="margin-top:8px;">
       <button data-s="tutte">Tutte</button>
-      <button data-s="att">Streak attaccata</button>
-      <button data-s="attSame">Streak attaccata · stessa partita</button>
-      <button data-s="attOther">Streak attaccata · altra partita</button>
-      <button data-s="non">Streak non attaccata</button>
+      <button data-s="con">Con streak</button>
+      <button data-s="attSame">Streak · stessa partita</button>
+      <button data-s="attOther">Streak · altra partita</button>
       <button data-s="senza">Senza streak</button>
+    </div>
+    <div class="vista-seg" id="ripSeg" style="margin-top:8px;">
+      <button data-r="tutte">Tutte</button>
+      <button data-r="con">Con ripetizione</button>
+      <button data-r="senza">Senza ripetizione</button>
     </div>
   </div>
   <div id="storicoList"></div>
@@ -711,9 +750,15 @@ let editingStoricoId = null;
 let editingCamp = null;
 // streak-manuale-v1
 filters.streakMan = 'tutte';
-try { const s2 = localStorage.getItem('cicli-finder-streak-filter'); if (['att','attSame','attOther','non','senza'].includes(s2)) filters.streakMan = s2; } catch(e) {}
+filters.rip = 'tutte';
+try { const r2 = localStorage.getItem('cicli-finder-rip-filter'); if (r2 === 'con' || r2 === 'senza') filters.rip = r2; } catch(e) {}
+try { let s2 = localStorage.getItem('cicli-finder-streak-filter');
+  if (s2 === 'att') s2 = 'con';
+  if (s2 === 'non') { s2 = 'tutte'; if (filters.rip === 'tutte') { filters.rip = 'con'; try { localStorage.setItem('cicli-finder-rip-filter', 'con'); } catch(e) {} } }
+  if (['con','attSame','attOther','senza'].includes(s2)) filters.streakMan = s2; else s2 = 'tutte';
+  localStorage.setItem('cicli-finder-streak-filter', s2); } catch(e) {}
 let stkDraft = { attached: true, samePartita: undefined, editIdx: -1, rowsByG: {} };
-function samePLabel(x, short) { if (!x.attached || x.samePartita === undefined) return ''; return short ? (x.samePartita ? ' · STESSA P.' : ' · ALTRA P.') : (x.samePartita ? ' · stessa partita' : ' · altra partita'); }
+function samePLabel(x, short) { if (x.samePartita === undefined) return ''; return short ? (x.samePartita ? ' · STESSA P.' : ' · ALTRA P.') : (x.samePartita ? ' · stessa partita' : ' · altra partita'); }
 function normStreaks(arr) {
   return (Array.isArray(arr) ? arr : []).map(x => {
     const a = parseInt(x && x.gFrom, 10), b = parseInt(x && x.gTo, 10);
@@ -726,8 +771,8 @@ function normStreaks(arr) {
       const v = src ? src[g] : oldRows[0];
       if (v && /^(gol|over):[1-6]$/.test(v)) rbg[g] = v;
     }
-    const o = { gFrom: a, gTo: to, attached: !!x.attached, rowsByG: rbg, rows: [...new Set(Object.values(rbg))] };
-    if (o.attached && typeof x.samePartita === 'boolean') o.samePartita = x.samePartita;
+    const o = { gFrom: a, gTo: to, attached: true, rowsByG: rbg, rows: [...new Set(Object.values(rbg))] };
+    if (typeof x.samePartita === 'boolean') o.samePartita = x.samePartita;
     return o;
   }).filter(Boolean);
 }
@@ -765,26 +810,90 @@ function matchStreakFilter(it) {
   const f = filters.streakMan; if (f === 'tutte') return true;
   const st = itemStreaks(it);
   if (f === 'senza') return st.length === 0;
-  if (f === 'att') return st.some(x => x.attached);
-  if (f === 'attSame') return st.some(x => x.attached && x.samePartita === true);
-  if (f === 'attOther') return st.some(x => x.attached && x.samePartita === false);
-  return st.some(x => !x.attached);
+  return st.some(stkMatchesFilter);
+}
+function stkMatchesFilter(x) {
+  const f = filters.streakMan;
+  if (f === 'con') return true;
+  if (f === 'attSame') return x.samePartita === true;
+  if (f === 'attOther') return x.samePartita === false;
+  return false;
+}
+// ripetizioni-evidenzia-filtri-v1: ripetizioni (stessa partita 2+ giornate), sezione a parte
+function normRips(arr) {
+  return (Array.isArray(arr) ? arr : []).map(x => {
+    const a = parseInt(x && x.gFrom, 10), b = parseInt(x && x.gTo, 10);
+    if (isNaN(a)) return null;
+    const to = isNaN(b) || b < a ? a : b;
+    const row = x.row && /^(gol|over):[1-6]$/.test(x.row) ? x.row : null;
+    return { gFrom: a, gTo: to, row };
+  }).filter(Boolean).sort((p, q) => p.gFrom - q.gFrom);
+}
+function ripsOverlap(camp, a, b) { return normRips(camp && camp.ripetizioni).filter(x => x.gTo >= a && x.gFrom <= b); }
+function itemRips(it) {
+  if (it.kind === 'campionato') return normRips(it.snapshot && it.snapshot.ripetizioni);
+  const camp = findCampForCiclo(it);
+  if (camp && Array.isArray(camp.ripetizioni)) {
+    const a = parseInt(it.gStart,10), b = parseInt(it.gEnd || it.gStart,10);
+    const ranges = cicloRangesOf(camp, it);
+    return normRips(camp.ripetizioni).filter(x => { const o = streakOwner({ gFrom: x.gFrom, gTo: x.gTo, attached: false }, ranges); return o && o.a === a && o.b === b; });
+  }
+  return normRips(it.ripetizioni);
+}
+function matchRipFilter(it) {
+  if (filters.rip === 'tutte') return true;
+  const n = itemRips(it).length;
+  return filters.rip === 'con' ? n > 0 : n === 0;
+}
+function ripLabel(x) { return 'RIPETIZIONE G' + x.gFrom + (x.gTo !== x.gFrom ? '–' + x.gTo : '') + ' · ' + (x.row ? rowLabel(x.row) : '—'); }
+function ripBadges(rs, hl) { return rs.map(x => `<span class="badge-rip${hl ? ' hl-on' : ''}">${ripLabel(x)}</span>`).join(' '); }
+/** Migrazione: streak "non attaccate" diventano ripetizioni. Nessun dato perso. */
+function migrateCampRips(c) {
+  if (!c || typeof c !== 'object') return false;
+  let changed = false;
+  if (Array.isArray(c.streaks)) {
+    const keep = [];
+    const rips = Array.isArray(c.ripetizioni) ? c.ripetizioni : [];
+    for (const x of c.streaks) {
+      if (x && !x.attached) {
+        const a = parseInt(x.gFrom, 10), b = parseInt(x.gTo, 10);
+        if (isNaN(a)) continue;
+        const vals = (x.rowsByG && typeof x.rowsByG === 'object' ? Object.keys(x.rowsByG).map(Number).sort((p, q) => p - q).map(k => x.rowsByG[k]) : []).concat(Array.isArray(x.rows) ? x.rows : []).filter(v => v && /^(gol|over):[1-6]$/.test(v));
+        const r = { gFrom: a, gTo: isNaN(b) || b < a ? a : b, row: vals[0] || null, migrated: true };
+        if (!rips.some(y => y.gFrom === r.gFrom && y.gTo === r.gTo && y.row === r.row)) rips.push(r);
+        changed = true;
+      } else if (x) keep.push(x);
+    }
+    if (changed) { c.streaks = keep; c.ripetizioni = rips; }
+  }
+  return changed;
+}
+function migrateState(st) {
+  let ch = false;
+  (st.campionati || []).forEach(c => { ch = migrateCampRips(c) || ch; });
+  (st.storico || []).forEach(e => {
+    ch = migrateCampRips(e) || ch;
+    if (e.snapshot) ch = migrateCampRips(e.snapshot) || ch;
+    if (e._draft) ch = migrateCampRips(e._draft) || ch;
+    (e.cicli || []).forEach(c => { ch = migrateCampRips(c) || ch; });
+  });
+  return ch;
 }
 function dayRowsLabel(x) { const k = Object.keys(x.rowsByG || {}).map(Number).sort((p, q) => p - q); return k.length ? ' · ' + k.map(g => 'G' + g + ' ' + rowLabel(x.rowsByG[g])).join(' · ') : ''; }
 function rowLabel(r) { const [ramo, n] = String(r).split(':'); return n + (ramo === 'gol' ? 'G' : 'O'); }
-function streakBadges(st) {
-  return st.map(x => `<span class="${x.attached ? 'badge-stk-att' : 'badge-stk-non'}">STREAK ${x.attached ? 'ATT.' : 'NON ATT.'}${samePLabel(x, true)} G${x.gFrom}${x.gTo !== x.gFrom ? '–' + x.gTo : ''}${dayRowsLabel(x)}</span>`).join(' ');
+function streakBadges(st, hlOn) {
+  return st.map(x => `<span class="badge-stk-att${hlOn && hlOn(x) ? ' hl-on' : ''}">STREAK${samePLabel(x, true)} G${x.gFrom}${x.gTo !== x.gFrom ? '–' + x.gTo : ''}${dayRowsLabel(x)}</span>`).join(' ');
 }
 function renderStreakPanel(camp) {
-  document.querySelectorAll('#stkTipoChips .chip').forEach(ch => ch.classList.toggle('on', (ch.dataset.att === '1') === !!stkDraft.attached));
+  stkDraft.attached = true;
   renderStkDays();
-  document.getElementById('stkSameRow').style.display = stkDraft.attached ? '' : 'none';
+  renderRipPanel(camp);
   document.querySelectorAll('#stkSameChips .chip').forEach(ch => ch.classList.toggle('on', stkDraft.samePartita !== undefined && (ch.dataset.same === '1') === stkDraft.samePartita));
   document.getElementById('btnStkAdd').textContent = stkDraft.editIdx >= 0 ? 'Salva streak' : 'Aggiungi streak';
   const st = normStreaks(camp.streaks);
   const list = document.getElementById('stkList');
   list.innerHTML = st.length ? st.map((x, i) => `<div class="inc-list-item">
-      <span class="${x.attached ? 'badge-stk-att' : 'badge-stk-non'}">${x.attached ? 'Attaccata' : 'Non attaccata'}${samePLabel(x)}</span>
+      <span class="badge-stk-att">Streak${samePLabel(x)}</span>
       <span>G${x.gFrom}${x.gTo !== x.gFrom ? '–' + x.gTo : ''}${dayRowsLabel(x)}</span>
       <div class="acts"><button class="btn btn-ghost btn-sm stk-edit" data-i="${i}">Modifica</button><button class="btn btn-danger btn-sm stk-del" data-i="${i}">✕</button></div>
     </div>`).join('') : '<div class="help">Nessuna streak manuale.</div>';
@@ -794,7 +903,7 @@ function renderStreakPanel(camp) {
   });
   list.querySelectorAll('.stk-edit').forEach(b => b.onclick = () => {
     const c = getActiveCamp(); const x = normStreaks(c.streaks)[+b.dataset.i]; if (!x) return;
-    stkDraft = { attached: x.attached, samePartita: x.samePartita, editIdx: +b.dataset.i, rowsByG: Object.assign({}, x.rowsByG) };
+    stkDraft = { attached: true, samePartita: x.samePartita, editIdx: +b.dataset.i, rowsByG: Object.assign({}, x.rowsByG) };
     document.getElementById('stkFrom').value = x.gFrom; document.getElementById('stkTo').value = x.gTo;
     renderStreakPanel(c);
   });
@@ -832,8 +941,8 @@ function addStreakFromForm() {
   if (b < a) { toast('La giornata finale è prima dell\'inizio'); return; }
   if (b > c.giornateMax) { toast('Oltre le giornate del campionato'); return; }
   const rowsByG = {}; for (let g = a; g <= b; g++) if (stkDraft.rowsByG[g]) rowsByG[g] = stkDraft.rowsByG[g];
-  const item = { gFrom: a, gTo: b, attached: !!stkDraft.attached, rowsByG, rows: [...new Set(Object.values(rowsByG))] };
-  if (item.attached && typeof stkDraft.samePartita === 'boolean') item.samePartita = stkDraft.samePartita;
+  const item = { gFrom: a, gTo: b, attached: true, rowsByG, rows: [...new Set(Object.values(rowsByG))] };
+  if (typeof stkDraft.samePartita === 'boolean') item.samePartita = stkDraft.samePartita;
   const arr = normStreaks(c.streaks);
   if (stkDraft.editIdx >= 0 && arr[stkDraft.editIdx]) arr[stkDraft.editIdx] = item; else arr.push(item);
   arr.sort((x, y) => x.gFrom - y.gFrom);
@@ -843,6 +952,51 @@ function addStreakFromForm() {
   stkDraft.rowsByG = {};
   document.getElementById('stkFrom').value = ''; document.getElementById('stkTo').value = '';
   save(); renderGrid(c); renderStreakPanel(c); toast(wasEdit ? 'Streak aggiornata' : 'Streak aggiunta');
+}
+
+let ripDraft = { row: '', editIdx: -1 };
+function renderRipPanel(camp) {
+  const pbox = document.getElementById('ripPartita');
+  let h = '<div class="stk-day rip-day">';
+  for (const ramo of ['gol','over']) { for (let n = 1; n <= 6; n++) { const v = ramo + ':' + n; h += `<button type="button" class="stk-pc${ripDraft.row === v ? ' on' : ''}" data-v="${v}">${n}${ramo === 'gol' ? 'G' : 'O'}</button>`; } if (ramo === 'gol') h += '<span class="stk-sep"></span>'; }
+  pbox.innerHTML = h + '</div>';
+  pbox.querySelectorAll('.stk-pc').forEach(b => b.onclick = () => { ripDraft.row = ripDraft.row === b.dataset.v ? '' : b.dataset.v; renderRipPanel(getActiveCamp()); });
+  document.getElementById('btnRipAdd').textContent = ripDraft.editIdx >= 0 ? 'Salva ripetizione' : 'Aggiungi ripetizione';
+  const rs = normRips(camp.ripetizioni);
+  const list = document.getElementById('ripList');
+  list.innerHTML = rs.length ? rs.map((x, i) => `<div class="inc-list-item">
+      <span class="badge-rip">Ripetizione</span>
+      <span>G${x.gFrom}–${x.gTo} · ${x.row ? rowLabel(x.row) : '—'}</span>
+      <div class="acts"><button class="btn btn-ghost btn-sm rip-edit" data-i="${i}">Modifica</button><button class="btn btn-danger btn-sm rip-del" data-i="${i}">✕</button></div>
+    </div>`).join('') : '<div class="help">Nessuna ripetizione.</div>';
+  list.querySelectorAll('.rip-del').forEach(b => b.onclick = () => {
+    const c = getActiveCamp(); const arr = normRips(c.ripetizioni); arr.splice(+b.dataset.i, 1); c.ripetizioni = arr;
+    ripDraft = { row: '', editIdx: -1 }; save(); renderGrid(c); renderRipPanel(c); toast('Ripetizione eliminata');
+  });
+  list.querySelectorAll('.rip-edit').forEach(b => b.onclick = () => {
+    const c = getActiveCamp(); const x = normRips(c.ripetizioni)[+b.dataset.i]; if (!x) return;
+    ripDraft = { row: x.row || '', editIdx: +b.dataset.i };
+    document.getElementById('ripFrom').value = x.gFrom; document.getElementById('ripTo').value = x.gTo;
+    renderRipPanel(c);
+  });
+}
+function addRipFromForm() {
+  const c = getActiveCamp(); if (!c) return;
+  const a = parseInt(document.getElementById('ripFrom').value, 10);
+  const b = parseInt(document.getElementById('ripTo').value, 10);
+  if (isNaN(a) || a < 1) { toast('Inserisci la giornata di inizio'); return; }
+  if (isNaN(b) || b < a + 1) { toast('Servono almeno 2 giornate di fila'); return; }
+  if (b > c.giornateMax) { toast('Oltre le giornate del campionato'); return; }
+  if (!ripDraft.row) { toast('Scegli la partita'); return; }
+  const arr = normRips(c.ripetizioni);
+  const item = { gFrom: a, gTo: b, row: ripDraft.row };
+  const wasEdit = ripDraft.editIdx >= 0 && arr[ripDraft.editIdx];
+  if (wasEdit) arr[ripDraft.editIdx] = item; else arr.push(item);
+  arr.sort((x, y) => x.gFrom - y.gFrom);
+  c.ripetizioni = arr;
+  ripDraft = { row: '', editIdx: -1 };
+  document.getElementById('ripFrom').value = ''; document.getElementById('ripTo').value = '';
+  save(); renderGrid(c); renderRipPanel(c); toast(wasEdit ? 'Ripetizione aggiornata' : 'Ripetizione aggiunta');
 }
 
 function uid() {
@@ -860,6 +1014,10 @@ function load() {
     const d = JSON.parse(raw);
     if (!d.campionati) d.campionati = [];
     if (!d.storico) d.storico = [];
+    if (migrateState(d)) {
+      try { if (!localStorage.getItem('cicli-finder-backup-pre-ripetizioni')) localStorage.setItem('cicli-finder-backup-pre-ripetizioni', raw); } catch(e) {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
+    }
     return d;
   } catch (e) {
     return defaultState();
@@ -987,7 +1145,7 @@ function extractCicli(camp) {
       merged.push(c);
     }
   }
-  for (const c of merged) c.streaks = streaksOverlap(camp, c.gStart, c.gEnd);
+  for (const c of merged) { c.streaks = streaksOverlap(camp, c.gStart, c.gEnd); c.ripetizioni = ripsOverlap(camp, c.gStart, c.gEnd); }
   return merged;
 }
 
@@ -1174,6 +1332,22 @@ function renderGrid(camp) {
     }
   }
 
+  // ripetizioni-evidenzia-filtri-v1: riga ripetizioni
+  const rips = normRips(camp.ripetizioni);
+  const ripHit = {};
+  if (rips.length) {
+    html += `<div class="cell label rip-row" style="color:#b388ff;">RIP</div>`;
+    for (let g = 1; g <= N; g++) {
+      const on = rips.filter(x => g >= x.gFrom && g <= x.gTo);
+      let cls = 'cell rip-row';
+      if (on.length) cls += ' rip-on';
+      if (on.some(x => x.gFrom === g)) cls += ' rip-a';
+      if (on.some(x => x.gTo === g)) cls += ' rip-z';
+      for (const x of on) if (x.row) ripHit[g + ':' + x.row] = true;
+      html += `<div class="${cls}" title="${on.map(ripLabel).join(' · ')}">${on.some(x => x.gFrom === g) ? 'R' : ''}</div>`;
+    }
+  }
+
   // GOL section label row spacer? Just label each row
   for (const ramo of ['gol', 'over']) {
     for (let n = 1; n <= 6; n++) {
@@ -1192,6 +1366,7 @@ function renderGrid(camp) {
         if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
         if (cdays.has(g)) cls += ' consec-day';
         if (stkHit[g + ':' + ramo + ':' + n]) cls += ' stk-hit-' + stkHit[g + ':' + ramo + ':' + n];
+        if (ripHit[g + ':' + ramo + ':' + n]) cls += ' rip-hit';
         const icon = sig === 'ok' ? '✅' : sig === 'ko' ? '❌' : '';
         html += `<div class="${cls}" data-g="${g}" data-ramo="${ramo}" data-n="${n}">${icon}</div>`;
       }
@@ -1323,6 +1498,7 @@ function renderStorico() {
     if (filters.consec === 'con' && !itemHasConsec(it)) return false;
     if (filters.consec === 'senza' && itemHasConsec(it)) return false;
     if (!matchStreakFilter(it)) return false;
+    if (!matchRipFilter(it)) return false;
     if (filters.soloCicli && it.kind === 'campionato') return false;
     if (filters.soloFull && it.kind !== 'campionato') return false;
     if (it.kind === 'campionato') {
@@ -1341,7 +1517,9 @@ function renderStorico() {
     document.querySelectorAll('#vistaSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === cur));
     document.querySelectorAll('#eccSeg button').forEach(b => b.classList.toggle('on', b.dataset.e === filters.ecc));
     document.querySelectorAll('#consecSeg button').forEach(b => b.classList.toggle('on', b.dataset.c === filters.consec));
-    document.querySelectorAll('#streakSeg button').forEach(b => b.classList.toggle('on', b.dataset.s === filters.streakMan)); }
+    document.querySelectorAll('#streakSeg button').forEach(b => b.classList.toggle('on', b.dataset.s === filters.streakMan));
+    document.querySelectorAll('#ripSeg button').forEach(b => b.classList.toggle('on', b.dataset.r === filters.rip)); }
+  curHL = computeHL();
   document.querySelectorAll('#eccSeg button').forEach(b => {
   b.addEventListener('click', () => {
     filters.ecc = b.dataset.e;
@@ -1387,17 +1565,77 @@ function matchCicloFilter(c, skipEcc) {
   return true;
 }
 
+// ripetizioni-evidenzia-filtri-v1: evidenziazione di ciò che il filtro cerca
+let curHL = { any: false };
+function computeHL() {
+  const h = {
+    tipi: filters.tipi.size > 0,
+    ecc: filters.ecc === 'con',
+    consec: filters.consec === 'con',
+    stk: ['con','attSame','attOther'].includes(filters.streakMan),
+    rip: filters.rip === 'con',
+    auto: !!filters.streak
+  };
+  h.any = h.tipi || h.ecc || h.consec || h.stk || h.rip || h.auto;
+  return h;
+}
+function hlCls(on) { return curHL.any && on ? ' hl-on' : ''; }
+/** Mappa delle celle da evidenziare: cols (colonna intera), heads (solo intestazione), cells ("g:ramo:n") */
+function hlMarks(camp, it, gFrom, gTo) {
+  const m = { cols: new Set(), heads: new Set(), cells: new Set(), prev: false };
+  if (!curHL.any) return m;
+  const cmap = camp ? buildCycleMap(camp) : {};
+  for (let g = gFrom; g <= gTo; g++) {
+    const tipo = it && it.kind === 'ciclo' ? it.tipo : (cmap[g] && cmap[g].tipo);
+    if (curHL.tipi && tipo && filters.tipi.has(tipo)) m.cols.add(g);
+  }
+  if (curHL.ecc) {
+    if (it && it.kind === 'ciclo') {
+      const inc = it.snapshotIncrocio;
+      if (it.conEccezione) { const a = inc && inc.gStart ? inc.gStart : it.gStart, b = inc && inc.gStart ? (inc.gEnd || inc.gStart) : it.gEnd; for (let g = a; g <= b; g++) m.cols.add(g); m.prev = true; }
+    } else {
+      for (const g in cmap) if (cmap[g].conEccezione && cmap[g].painted) m.cols.add(+g);
+      const pe = eccPrevInfo(camp); for (const g in pe) m.cols.add(+g);
+    }
+  }
+  if (curHL.consec && camp) consecDays(camp).forEach(g => m.cols.add(g));
+  if (curHL.stk) for (const x of (it ? itemStreaks(it) : normStreaks(camp && camp.streaks)).filter(stkMatchesFilter)) {
+    for (let g = x.gFrom; g <= x.gTo; g++) { m.heads.add(g); if (x.rowsByG[g]) m.cells.add(g + ':' + x.rowsByG[g]); }
+  }
+  if (curHL.rip) for (const x of (it ? itemRips(it) : normRips(camp && camp.ripetizioni))) {
+    for (let g = x.gFrom; g <= x.gTo; g++) { m.heads.add(g); if (x.row) m.cells.add(g + ':' + x.row); else m.cols.add(g); }
+  }
+  if (curHL.auto && it && it.kind === 'ciclo' && it.hasStreak) {
+    const sigs = it.signals || {};
+    for (const mm of it.matches || []) for (let g = gFrom; g <= gTo; g++) { const v = sigs[g] && sigs[g][mm.ramo] && sigs[g][mm.ramo][mm.n]; if (v) { m.heads.add(g); m.cells.add(g + ':' + mm.ramo + ':' + mm.n); } }
+  }
+  return m;
+}
+function hlNote() {
+  if (!curHL.any) return '';
+  const p = [];
+  if (curHL.tipi) p.push('tipo ' + [...filters.tipi].map(tipoLabel).join('/'));
+  if (curHL.ecc) p.push('eccezione');
+  if (curHL.consec) p.push('incroci consecutivi');
+  if (curHL.stk) p.push({ con: 'streak', attSame: 'streak stessa partita', attOther: 'streak altra partita' }[filters.streakMan]);
+  if (curHL.rip) p.push('ripetizione');
+  if (curHL.auto) p.push('streak automatica');
+  return `<div class="hl-note">✦ Evidenziato: ${p.join(' · ')}</div>`;
+}
+
 function renderCicloCard(it) {
   const range = it.gStart === it.gEnd ? `G${it.gStart}` : `G${it.gStart}–${it.gEnd}`;
-  return `<div class="storico-card" data-id="${it.id}">
+  return `<div class="storico-card${curHL.any ? ' hl' : ''}" data-id="${it.id}">
     <div class="label-row">
-      <span class="badge-tipo ${tipoClass(it.tipo)}">${tipoLabel(it.tipo)}</span>
-      ${it.conEccezione ? '<span class="badge-ecc">ECCEZIONE</span>' : ''}
+      <span class="badge-tipo ${tipoClass(it.tipo)}${hlCls(curHL.tipi && filters.tipi.has(it.tipo))}">${tipoLabel(it.tipo)}</span>
+      ${it.conEccezione ? '<span class="badge-ecc' + hlCls(curHL.ecc) + '">ECCEZIONE</span>' : ''}
       ${it.diFila ? '<span class="badge-fila">DI FILA ×' + it.mergedFrom + '</span>' : ''}
-      ${itemHasConsec(it) ? '<span class="badge-consec">⛓ INCROCI CONSECUTIVI</span>' : ''}
-      ${it.hasStreak ? '<span class="badge-fila" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK AUTO</span>' : ''}
-      ${streakBadges(itemStreaks(it))}
+      ${itemHasConsec(it) ? '<span class="badge-consec' + hlCls(curHL.consec) + '">⛓ INCROCI CONSECUTIVI</span>' : ''}
+      ${it.hasStreak ? '<span class="badge-fila' + hlCls(curHL.auto) + '" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK AUTO</span>' : ''}
+      ${streakBadges(itemStreaks(it), curHL.stk ? stkMatchesFilter : null)}
+      ${ripBadges(itemRips(it), curHL.rip)}
     </div>
+    ${hlNote()}
     <div class="meta-line"><strong>${esc(it.campionatoName)}</strong> · ${esc(it.campionatoDate)} · ${range}</div>
     <div class="mini-grid-wrap">${miniGridHtml(it)}</div>
     <div class="btn-row">
@@ -1409,13 +1647,20 @@ function renderCicloCard(it) {
 
 function renderFullCard(it) {
   const camp = it.snapshot;
-  return `<div class="storico-card" data-id="${it.id}">
+  const tipiIn = [...new Set((camp.incroci || []).map(i => i.tipo))];
+  const hasEccF = (it.cicli || []).some(c => c.conEccezione) || (camp.incroci || []).some(i => i.conEccezione);
+  return `<div class="storico-card${curHL.any ? ' hl' : ''}" data-id="${it.id}">
     <div class="label-row">
       <span class="badge-full">CAMPIONATO</span>
       <span style="font-weight:700;">${esc(camp.name)}</span>
-      ${itemHasConsec(it) ? '<span class="badge-consec">⛓ INCROCI CONSECUTIVI</span>' : ''}
-      ${streakBadges(itemStreaks(it))}
+      ${curHL.tipi ? tipiIn.filter(t => filters.tipi.has(t)).map(t => `<span class="badge-tipo ${tipoClass(t)} hl-on">${tipoLabel(t)}</span>`).join(' ') : ''}
+      ${curHL.ecc && hasEccF ? '<span class="badge-ecc hl-on">ECCEZIONE</span>' : ''}
+      ${itemHasConsec(it) ? '<span class="badge-consec' + hlCls(curHL.consec) + '">⛓ INCROCI CONSECUTIVI</span>' : ''}
+      ${curHL.auto && (it.cicli || []).some(c => c.hasStreak) ? '<span class="badge-fila hl-on" style="background:#22c55e33;color:#86efac;border-color:#22c55e;">STREAK AUTO</span>' : ''}
+      ${streakBadges(itemStreaks(it), curHL.stk ? stkMatchesFilter : null)}
+      ${ripBadges(itemRips(it), curHL.rip)}
     </div>
+    ${hlNote()}
     <div class="meta-line">${esc(camp.date)} · ${camp.giornateMax} giornate · ${(camp.incroci||[]).length} incroci · ${(it.cicli||[]).length} cicli</div>
     <div class="mini-grid-wrap">${miniGridHtmlFromCamp(camp)}</div>
     <div class="btn-row">
@@ -1440,9 +1685,13 @@ function miniGridHtml(it) {
     for (const m of ms) prevSet.add(m.ramo + ':' + m.n);
   }
   const cdaysC = consecDays(findCampForCiclo(it));
+  const hm = hlMarks(findCampForCiclo(it), it, gStart, gEnd);
+  const stkC = {}, stkD = new Set(), ripC = {}, ripD = new Set();
+  for (const x of itemStreaks(it)) for (let g = x.gFrom; g <= x.gTo; g++) { stkD.add(g); if (x.rowsByG[g]) stkC[g + ':' + x.rowsByG[g]] = 1; }
+  for (const x of itemRips(it)) for (let g = x.gFrom; g <= x.gTo; g++) { ripD.add(g); if (x.row) ripC[g + ':' + x.row] = 1; }
   let html = `<div class="mini-grid" style="grid-template-columns: 36px ${prevG ? '24px ' : ''}repeat(${N}, 22px);">`;
   html += `<div class="mc label"></div>`;
-  if (prevG) html += `<div class="mc header prev-col" title="Giornata prima dell'incrocio">G-1<br>${prevG}</div>`;
+  if (prevG) html += `<div class="mc header prev-col${hlCls(hm.prev)}" title="Giornata prima dell'incrocio">G-1<br>${prevG}</div>`;
   const eccDay = (g) => {
     if (!it.conEccezione) return false;
     if (incSnap && incSnap.gStart) {
@@ -1455,6 +1704,9 @@ function miniGridHtml(it) {
     let cls = 'mc header col-' + tipoClass(it.tipo);
     if (eccDay(g)) cls += ' col-ecc ecc-row';
     if (cdaysC.has(g)) cls += ' consec consec-day';
+    if (stkD.has(g)) cls += ' stk-day';
+    if (ripD.has(g)) cls += ' rip-day';
+    cls += hlCls(hm.cols.has(g) || hm.heads.has(g));
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -1466,6 +1718,7 @@ function miniGridHtml(it) {
         let pc = 'mc prev-col' + os;
         if (ps === 'ok') pc += ' ok'; else if (ps === 'ko') pc += ' ko';
         if (ps && prevSet.has(ramo + ':' + n)) pc += ' prev-hit';
+        pc += hlCls(hm.prev);
         html += `<div class="${pc}">${ps === 'ok' ? '✓' : ps === 'ko' ? '✗' : ''}</div>`;
       }
       for (let g = gStart; g <= gEnd; g++) {
@@ -1477,6 +1730,10 @@ function miniGridHtml(it) {
         else cls += ' tint-' + tipoClass(it.tipo);
         if (eccDay(g)) cls += ' ecc-row';
         if (cdaysC.has(g)) cls += ' consec-day';
+        const k = g + ':' + ramo + ':' + n;
+        if (stkC[k]) cls += ' stk-hit-att';
+        if (ripC[k]) cls += ' rip-hit';
+        cls += hlCls(hm.cols.has(g) || hm.cells.has(k));
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
@@ -1492,6 +1749,10 @@ function miniGridHtmlFromCamp(camp) {
   let html = `<div class="mini-grid" style="grid-template-columns: ${gridColsTemplate(36, 22, 6, N, cycleMap)};">`;
   const prevEcc = eccPrevInfo(camp);
   const cdays = consecDays(camp);
+  const hm = hlMarks(camp, null, 1, N);
+  const stkC = {}, stkD = new Set(), ripC = {}, ripD = new Set();
+  for (const x of normStreaks(camp.streaks)) for (let g = x.gFrom; g <= x.gTo; g++) { stkD.add(g); if (x.rowsByG[g]) stkC[g + ':' + x.rowsByG[g]] = 1; }
+  for (const x of normRips(camp.ripetizioni)) for (let g = x.gFrom; g <= x.gTo; g++) { ripD.add(g); if (x.row) ripC[g + ':' + x.row] = 1; }
   html += `<div class="mc label"></div>`;
   for (let g = 1; g <= N; g++) {
     const cy = cycleMap[g];
@@ -1503,6 +1764,9 @@ function miniGridHtmlFromCamp(camp) {
     }
     if (prevEcc[g]) cls += ' prev-ecc';
     if (cdays.has(g)) cls += ' consec consec-day';
+    if (stkD.has(g)) cls += ' stk-day';
+    if (ripD.has(g)) cls += ' rip-day';
+    cls += hlCls(hm.cols.has(g) || hm.heads.has(g));
     html += `<div class="${cls}">${g}</div>`;
   }
   for (const ramo of ['gol', 'over']) {
@@ -1521,6 +1785,10 @@ function miniGridHtmlFromCamp(camp) {
         if (cy && cy.newSame) cls += ' new-same';
         if (prevEcc[g]) { cls += ' prev-ecc'; if (sig && prevEcc[g].has(ramo + ':' + n)) cls += ' prev-hit'; }
         if (cdays.has(g)) cls += ' consec-day';
+        const k = g + ':' + ramo + ':' + n;
+        if (stkC[k]) cls += ' stk-hit-att';
+        if (ripC[k]) cls += ' rip-hit';
+        cls += hlCls(hm.cols.has(g) || hm.cells.has(k));
         html += `<div class="${cls}">${icon}</div>`;
       }
     }
@@ -1659,6 +1927,7 @@ function cicloToCamp(entry) {
     incroci,
     signals: JSON.parse(JSON.stringify(entry.signals || {})),
     streaks: Array.isArray(entry.streaks) ? normStreaks(entry.streaks) : (parent && parent.snapshot ? streaksOverlap(parent.snapshot, entry.gStart, entry.gEnd) : []),
+    ripetizioni: parent && parent.snapshot && Array.isArray(parent.snapshot.ripetizioni) ? itemRips(entry) : normRips(entry.ripetizioni),
     _fromCiclo: true
   };
 }
@@ -1703,6 +1972,7 @@ function applyCicloOntoEntry(entry, c, camp) {
   entry.mergedFrom = c.mergedFrom || 1;
   entry.hasStreak = !!c.hasStreak;
   entry.streaks = normStreaks(c.streaks);
+  entry.ripetizioni = normRips(c.ripetizioni);
   entry.snapshotIncrocio = c.snapshotIncrocio ? { ...c.snapshotIncrocio } : entry.snapshotIncrocio;
   entry.campionatoName = camp.name || entry.campionatoName;
   entry.campionatoDate = camp.date || entry.campionatoDate;
@@ -1759,6 +2029,9 @@ function patchParentFromCiclo(entry, camp, oldStart, oldEnd) {
   snap.incroci.push(...freshIncs);
   snap.streaks = normStreaks(snap.streaks).filter(x => !(x.gFrom >= oldStart && x.gTo <= oldEnd) && !(x.gTo >= entry.gStart && x.gFrom <= entry.gEnd))
     .concat(normStreaks(camp.streaks)).sort((x, y) => x.gFrom - y.gFrom);
+  { const own = itemRips(entry).map(x => x.gFrom + '-' + x.gTo + '-' + x.row);
+    snap.ripetizioni = normRips(snap.ripetizioni).filter(x => !own.includes(x.gFrom + '-' + x.gTo + '-' + x.row) && !(x.gFrom >= oldStart && x.gTo <= oldEnd))
+      .concat(normRips(camp.ripetizioni)).sort((x, y) => x.gFrom - y.gFrom); }
   snap.incroci.sort((a, b) => a.gStart - b.gStart);
   if (camp.date) snap.date = camp.date;
   snap.giornateMax = Math.max(snap.giornateMax || 1, entry.gEnd || 1);
@@ -1803,6 +2076,7 @@ function commitStoricoEdit() {
     live.mergedFrom = 1;
     live.hasStreak = computeStreak(camp, inc, gStart, gEnd);
     live.streaks = streaksOverlap(camp, gStart, gEnd);
+    live.ripetizioni = ripsOverlap(camp, gStart, gEnd);
     live.snapshotIncrocio = { ...inc };
     live.campionatoName = camp.name || live.campionatoName;
     live.campionatoDate = camp.date || live.campionatoDate;
@@ -1845,6 +2119,7 @@ function importJSON(file) {
       const data = JSON.parse(reader.result);
       if (!data.campionati || !data.storico) throw new Error('Formato non valido');
       if (!confirm('Sostituire tutti i dati locali con il file importato?')) return;
+      migrateState(data);
       state = data;
       save();
       activeCampId = null;
@@ -1998,9 +2273,16 @@ document.querySelectorAll('#streakSeg button').forEach(b => {
     renderStorico();
   });
 });
-document.querySelectorAll('#stkTipoChips .chip').forEach(ch => ch.addEventListener('click', () => {
-  stkDraft.attached = ch.dataset.att === '1'; const c = getActiveCamp(); if (c) renderStreakPanel(c);
+document.querySelectorAll('#ripSeg button').forEach(b => b.addEventListener('click', () => {
+  filters.rip = b.dataset.r;
+  try { localStorage.setItem('cicli-finder-rip-filter', filters.rip); } catch(e) {}
+  renderStorico();
 }));
+document.getElementById('btnRipAdd').addEventListener('click', addRipFromForm);
+document.getElementById('btnRipCancel').addEventListener('click', () => {
+  ripDraft = { row: '', editIdx: -1 }; ['ripFrom','ripTo'].forEach(i => document.getElementById(i).value = '');
+  const c = getActiveCamp(); if (c) renderRipPanel(c);
+});
 document.querySelectorAll('#stkSameChips .chip').forEach(ch => ch.addEventListener('click', () => {
   const v = ch.dataset.same === '1'; stkDraft.samePartita = stkDraft.samePartita === v ? undefined : v; const c = getActiveCamp(); if (c) renderStreakPanel(c);
 }));
@@ -2027,6 +2309,9 @@ window.__CF = {
   save,
   openStoricoEdit,
   commitStoricoEdit,
+  migrateState,
+  itemRips,
+  itemStreaks,
   STORAGE_KEY
 };
 
